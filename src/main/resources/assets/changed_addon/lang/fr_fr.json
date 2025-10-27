@@ -10,7 +10,7 @@
   "advancements.changedaddon_advancement.descr": "Vous avez installé Changed Addon fait par foxyas",
   "advancements.changedaddon_advancement.title": "Changed Addon",
   "advancements.compressed_ammonia_advancement.descr": "Vous avez fabriqué de l'ammoniac compressé",
-   "advancements.compressed_ammonia_advancement.title": "Compressed!!",
+  "advancements.compressed_ammonia_advancement.title": "Compressed!!",
   "advancements.crystal_adventurer.descr": "Obtenir toutes les sortes de crystals gluants",
   "advancements.crystal_adventurer.title": "Aventurier des Crystals Gluants",
   "advancements.crystal_collector.descr": "Ayez toutes les couleurs de crystals dans votre inventaire",
@@ -99,10 +99,25 @@
   "advancements.main.rock_fish.description": "Utiliser une potion de résistance au feu et nager dans la lave sous une forme aquatique",
 
   "advancement.grab.hug.title": "câlin douillet",
-  "advancement.grab.hug.description": "Vous avez donné à quelqu'un un gros calin  o((>ω< ))o",
+  "advancement.grab.hug.description": "Vous avez donné à quelqu'un un gros calin ♥",
 
   "advancement.grab.hug_tight.title": "Gros câlin",
-  "advancement.grab.hug_tight.description": "Vous avez donné à quelqu'un un gros calin bien serré (p≧w≦q)",
+  "advancement.grab.hug_tight.description": "Vous avez donné à quelqu'un un gros calin bien serré ♥",
+
+  "attribute.changed_addon.latex_infection": "inféction au latex",
+  "attribute.changed_addon.latex_resistance": "résistance au latex",
+
+ "block.changed_addon.advanced_catalyzer": "Catalyseur avancé",
+ "block.changed_addon.advanced_unifuser": "Unifuseur avancé",
+ "block.changed_addon.blue_wolf_crystal_block": "Bloc de crystal de loup bleu",
+ "block.changed_addon.blue_wolf_crystal_small": "Petit crystal de loup bleu",
+ "block.changed_addon.catalyzer": "Catalyseur",
+ "block.changed_addon.containment_container": "Fonteneur de confinement",
+ "block.changed_addon.dark_latex_puddle": "Flaque de latex sombre",
+ "block.changed_addon.dormant_dark_latex": "Bloc de latex sombre dormant",
+ "block.changed_addon.dormant_white_latex": "Latex blanc dormant",
+ "block.changed_addon.foxta_can": "§bcanette de Foxta§r",
+  
 
   
   
