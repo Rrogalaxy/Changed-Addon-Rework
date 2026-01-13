@@ -5,6 +5,7 @@ package net.foxyas.changedaddon.client.model.advanced;// Made with Blockbench 4.
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.foxyas.changedaddon.ChangedAddonMod;
 import net.foxyas.changedaddon.client.model.animations.ChangedAddonAnimationsPresets;
 import net.foxyas.changedaddon.client.renderer.layers.animation.CarryAbilityAnimation;
 import net.foxyas.changedaddon.entity.advanced.LatexKitsuneMaleEntity;
@@ -15,7 +16,6 @@ import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.*;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
 import org.jetbrains.annotations.NotNull;
@@ -24,7 +24,7 @@ import java.util.List;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class LatexKitsuneMaleModel extends AdvancedHumanoidModel<LatexKitsuneMaleEntity> implements AdvancedHumanoidModelInterface<LatexKitsuneMaleEntity, LatexKitsuneMaleModel> {
-    public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(new ResourceLocation("changed_addon", "kitsune_male"), "main");
+    public static final ModelLayerLocation LAYER_LOCATION =  ChangedAddonMod.layerLocation("kitsune_male", "main");
 
     private final ModelPart Hair;
     private final ModelPart Head;

@@ -385,7 +385,7 @@ public abstract class ParriableProjectile extends Projectile {
         setCritArrow(pCompound.getBoolean("crit"));
         setPierceLevel(pCompound.getByte("PierceLevel"));
         if (pCompound.contains("SoundEvent", 8)) {
-            soundEvent = Registry.SOUND_EVENT.getOptional(new ResourceLocation(pCompound.getString("SoundEvent"))).orElse(getDefaultHitGroundSoundEvent());
+            soundEvent = Registry.SOUND_EVENT.getOptional(ResourceLocation.parse(pCompound.getString("SoundEvent"))).orElse(getDefaultHitGroundSoundEvent());
         }
 
         setShotFromCrossbow(pCompound.getBoolean("ShotFromCrossbow"));
@@ -423,7 +423,7 @@ public abstract class ParriableProjectile extends Projectile {
         return false;
     }
 
-    protected float getEyeHeight(Pose pPose, EntityDimensions pSize) {
+    protected float getEyeHeight(@NotNull Pose pPose, @NotNull EntityDimensions pSize) {
         return 0.13F;
     }
 

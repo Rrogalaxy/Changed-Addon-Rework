@@ -26,6 +26,43 @@ public class StructureUtil {
     }
 
     /**
+     * Gets the structure start at a specific position in the world using its structure ID.
+     *
+     * @param level       the server level
+     * @param pos         the block position to check
+     * @param structureKey the ResourceKey of the structure (e.g., "minecraft:village")
+     * @return the StructureStart if found, or null if not present
+     */
+    public static StructureStart getStructureAtByKey(ServerLevel level, BlockPos pos, ResourceKey<ConfiguredStructureFeature<?, ?>> structureKey) {
+        return level.structureFeatureManager().getStructureWithPieceAt(pos, structureKey);
+    }
+
+    /**
+     * Gets the structure start at a specific position in the world using its structure ID.
+     *
+     * @param level       the server level
+     * @param pos         the block position to check
+     * @param structureId the ID of the structure (e.g., "minecraft:village")
+     * @return the StructureStart if found, or null if not present
+     */
+    public static StructureStart getStructureAtByKey(ServerLevel level, BlockPos pos, ResourceLocation structureId) {
+        ResourceKey<ConfiguredStructureFeature<?, ?>> structureKey = ResourceKey.create(BuiltinRegistries.CONFIGURED_STRUCTURE_FEATURE.key(), structureId);
+        return level.structureFeatureManager().getStructureWithPieceAt(pos, structureKey);
+    }
+
+    /**
+     * Gets the facility as a structure start at a specific position in the world using its structure ID.
+     *
+     * @param level the server level
+     * @param pos   the block position to check
+     * @return the StructureStart if found, or null if not present
+     */
+    public static StructureStart getFacilityAt(ServerLevel level, BlockPos pos) {
+        ResourceKey<ConfiguredStructureFeature<?, ?>> structureKey = ResourceKey.create(BuiltinRegistries.CONFIGURED_STRUCTURE_FEATURE.key(), ResourceLocation.parse("changed:facility"));
+        return level.structureFeatureManager().getStructureWithPieceAt(pos, structureKey);
+    }
+
+    /**
      * Checks if a structure can generate within a given chunk radius around a position.
      *
      * @param level      the server level
@@ -56,7 +93,7 @@ public class StructureUtil {
     public static boolean isStructureNearby(ServerLevel level, BlockPos pos, String structureId, int chunkRange) {
         ResourceKey<StructureSet> structureKey = ResourceKey.create(
                 BuiltinRegistries.STRUCTURE_SETS.key(),
-                new ResourceLocation(structureId)
+                ResourceLocation.parse(structureId)
         );
         return isStructureNearby(level, pos, structureKey, chunkRange);
     }

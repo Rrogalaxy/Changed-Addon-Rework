@@ -1,8 +1,9 @@
 package net.foxyas.changedaddon.potion;
 
 import net.foxyas.changedaddon.init.ChangedAddonMobEffects;
-import net.foxyas.changedaddon.network.ChangedAddonModVariables;
-import net.foxyas.changedaddon.procedures.SummonDripParticlesProcedure;
+import net.foxyas.changedaddon.init.ChangedAddonSoundEvents;
+import net.foxyas.changedaddon.network.ChangedAddonVariables;
+import net.foxyas.changedaddon.procedure.SummonDripParticlesProcedure;
 import net.foxyas.changedaddon.util.DelayedTask;
 import net.foxyas.changedaddon.util.PlayerUtil;
 import net.ltxprogrammer.changed.entity.ChangedEntity;
@@ -22,10 +23,13 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.event.entity.player.PlayerWakeUpEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -54,7 +58,7 @@ public class UntransfurMobEffect extends MobEffect {
         }
 
         if (!(entity instanceof Player player)) return;
-        ChangedAddonModVariables.PlayerVariables vars = ChangedAddonModVariables.PlayerVariables.of(player);
+        ChangedAddonVariables.PlayerVariables vars = ChangedAddonVariables.of(player);
         if (vars == null || vars.untransfurProgress < 100) return;
 
         if (!ProcessTransfur.isPlayerTransfurred(player)) {
@@ -80,9 +84,9 @@ public class UntransfurMobEffect extends MobEffect {
         });
 
         if (!(entity instanceof ServerPlayer sPlayer && sPlayer.level instanceof ServerLevel
-                && sPlayer.getAdvancements().getOrStartProgress(Objects.requireNonNull(sPlayer.server.getAdvancements().getAdvancement(new ResourceLocation("changed_addon:untransfur_advancement")))).isDone())) {
+                && sPlayer.getAdvancements().getOrStartProgress(Objects.requireNonNull(sPlayer.server.getAdvancements().getAdvancement(ResourceLocation.parse("changed_addon:untransfur_advancement")))).isDone())) {
             if (entity instanceof ServerPlayer _player) {
-                Advancement _adv = _player.server.getAdvancements().getAdvancement(new ResourceLocation("changed_addon:untransfur_advancement"));
+                Advancement _adv = _player.server.getAdvancements().getAdvancement(ResourceLocation.parse("changed_addon:untransfur_advancement"));
                 assert _adv != null;
                 AdvancementProgress _ap = _player.getAdvancements().getOrStartProgress(_adv);
                 if (!_ap.isDone()) {
@@ -96,11 +100,31 @@ public class UntransfurMobEffect extends MobEffect {
             player.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40, 0, false, false));
         }
 
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("changed_addon:untransfursound")), SoundSource.NEUTRAL, 1, 1);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), ChangedAddonSoundEvents.UNTRANSFUR.get(), SoundSource.NEUTRAL, 1, 1);
     }
 
     @Override
     public boolean isDurationEffectTick(int duration, int amplifier) {
         return true;
+    }
+
+    @Mod.EventBusSubscriber
+    public static class EventHandler {
+
+        @SubscribeEvent
+        public static void onEntityEndSleep(PlayerWakeUpEvent event) {
+            Entity entity = event.getEntity();
+            Level level = entity.level;
+
+            if (!level.isDay() || !(entity instanceof Player player)
+                    || !player.hasEffect(ChangedAddonMobEffects.UNTRANSFUR.get())) return;
+
+            new DelayedTask(5, () -> player.getCapability(ChangedAddonVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(cap -> {
+                if (ProcessTransfur.isPlayerTransfurred(player) && player.isSleepingLongEnough()) {
+                    cap.untransfurProgress += 50;
+                    cap.syncPlayerVariables(player);
+                }
+            }));
+        }
     }
 }

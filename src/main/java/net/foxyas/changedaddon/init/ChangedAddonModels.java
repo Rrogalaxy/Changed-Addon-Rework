@@ -3,10 +3,15 @@ package net.foxyas.changedaddon.init;
 import net.foxyas.changedaddon.client.model.*;
 import net.foxyas.changedaddon.client.model.advanced.*;
 import net.foxyas.changedaddon.client.model.armors.*;
+import net.foxyas.changedaddon.client.model.clothes.HazardBodySuitLayers;
+import net.foxyas.changedaddon.client.model.clothes.LatexHumanHazardBodySuitModel;
 import net.foxyas.changedaddon.client.model.projectile.SimpleProjectileModel;
 import net.foxyas.changedaddon.client.model.simple.*;
 import net.foxyas.changedaddon.client.renderer.blockEntitys.ContainmentContainerRenderer;
-import net.foxyas.changedaddon.client.renderer.blockEntitys.SnepPlushBlockEntityRenderer;
+import net.foxyas.changedaddon.client.renderer.blockEntitys.SnepPlushyBlockEntityRenderer;
+import net.minecraft.client.model.PlayerModel;
+import net.minecraft.client.model.geom.builders.CubeDeformation;
+import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -14,15 +19,24 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD, value = {Dist.CLIENT})
 public class ChangedAddonModels {
+
     @SubscribeEvent
     public static void registerLayerDefinitions(EntityRenderersEvent.RegisterLayerDefinitions event) {
 
         // --- ARMORS MODELS ---
         event.registerLayerDefinition(ModelAccessories.LAYER_LOCATION, ModelAccessories::createBodyLayer);
-        event.registerLayerDefinition(ModelHazmat_Suit.LAYER_LOCATION, ModelHazmat_Suit::createBodyLayer);
+        event.registerLayerDefinition(ModelHazmatSuit.LAYER_LOCATION, ModelHazmatSuit::createBodyLayer);
         event.registerLayerDefinition(ModelHazardArmorCustomArms.LAYER_LOCATION, ModelHazardArmorCustomArms::createBodyLayer);
         event.registerLayerDefinition(ModelNewHyperFlower.LAYER_LOCATION, ModelNewHyperFlower::createBodyLayer);
         event.registerLayerDefinition(DarkLatexCoatModel.LAYER_LOCATION, DarkLatexCoatModel::createBodyLayer);
+
+        // --- CLOTHING MODELS ---
+        event.registerLayerDefinition(HazardBodySuitLayers.PLAYER, () -> LayerDefinition.create(PlayerModel.createMesh(new CubeDeformation(0.05f), false), 64, 64));
+        event.registerLayerDefinition(HazardBodySuitLayers.PLAYER_SLIM, () -> LayerDefinition.create(PlayerModel.createMesh(new CubeDeformation(0.05f), true), 64, 64));
+
+        event.registerLayerDefinition(LatexHumanHazardBodySuitModel.LATEX_PLAYER, () -> LatexHumanHazardBodySuitModel.createBodyLayer(new CubeDeformation(0.05f), false));
+        event.registerLayerDefinition(LatexHumanHazardBodySuitModel.LATEX_PLAYER_SLIM, () -> LatexHumanHazardBodySuitModel.createBodyLayer(new CubeDeformation(0.05f), true));
+
 
 
         event.registerLayerDefinition(ModelLuminarCrystalSpearModel.LAYER_LOCATION, ModelLuminarCrystalSpearModel::createBodyLayer);
@@ -31,10 +45,10 @@ public class ChangedAddonModels {
         event.registerLayerDefinition(ModelFoxyasModel.LAYER_LOCATION, ModelFoxyasModel::createBodyLayer);
 
         // --- CHANGED ENTITIES MODELS---
-        event.registerLayerDefinition(ModelSnowFox.LAYER_LOCATION, ModelSnowFox::createBodyLayer);
-        event.registerLayerDefinition(ModelFemaleSnowFox.LAYER_LOCATION, ModelFemaleSnowFox::createBodyLayer);
+        event.registerLayerDefinition(LatexSnowFoxMaleModel.LAYER_LOCATION, LatexSnowFoxMaleModel::createBodyLayer);
+        event.registerLayerDefinition(LatexSnowFoxFemaleModel.LAYER_LOCATION, LatexSnowFoxFemaleModel::createBodyLayer);
         event.registerLayerDefinition(LatexDazedModel.LAYER_LOCATION, LatexDazedModel::createBodyLayer);
-        event.registerLayerDefinition(PuroKindModel.LAYER_LOCATION, PuroKindModel::createBodyLayer);
+        event.registerLayerDefinition(PuroKindMaleModel.LAYER_LOCATION, PuroKindMaleModel::createBodyLayer);
         event.registerLayerDefinition(PuroKindFemaleModel.LAYER_LOCATION, PuroKindFemaleModel::createBodyLayer);
         event.registerLayerDefinition(BunyModel.LAYER_LOCATION, BunyModel::createBodyLayer);
         event.registerLayerDefinition(BioSynthSnowLeopardMaleModel.LAYER_LOCATION, BioSynthSnowLeopardMaleModel::createBodyLayer);
@@ -64,7 +78,7 @@ public class ChangedAddonModels {
         event.registerLayerDefinition(FengQIWolfModel.LAYER_LOCATION, FengQIWolfModel::createBodyLayer);
         event.registerLayerDefinition(BagelModel.LAYER_LOCATION, BagelModel::createBodyLayer);
         event.registerLayerDefinition(LatexDragonSnowLeopardSharkModel.LAYER_LOCATION, LatexDragonSnowLeopardSharkModel::createBodyLayer);
-        event.registerLayerDefinition(HimalayanCrystalGasCatModel.LAYER_LOCATION, HimalayanCrystalGasCatModel::createBodyLayer);
+        event.registerLayerDefinition(HimalayanCrystalGasCatMaleModel.LAYER_LOCATION, HimalayanCrystalGasCatMaleModel::createBodyLayer);
         event.registerLayerDefinition(HimalayanCrystalGasCatFemaleModel.LAYER_LOCATION, HimalayanCrystalGasCatFemaleModel::createBodyLayer);
         event.registerLayerDefinition(VoidFoxModel.LAYER_LOCATION, VoidFoxModel::createBodyLayer);
         event.registerLayerDefinition(HaydenFennecFoxModel.LAYER_LOCATION, HaydenFennecFoxModel::createBodyLayer);
@@ -86,6 +100,11 @@ public class ChangedAddonModels {
         event.registerLayerDefinition(LatexCheetahFemaleModel.LAYER_LOCATION, LatexCheetahFemaleModel::createBodyLayer);
         event.registerLayerDefinition(LatexCheetahMaleModel.LAYER_LOCATION, LatexCheetahMaleModel::createBodyLayer);
         event.registerLayerDefinition(LuminaraFlowerBeastModel.LAYER_LOCATION, LuminaraFlowerBeastModel::createBodyLayer);
+        event.registerLayerDefinition(Protogen0senia0Model.LAYER_LOCATION, Protogen0senia0Model::createBodyLayer);
+        event.registerLayerDefinition(LatexKaylaSharkModel.LAYER_LOCATION, LatexKaylaSharkModel::createBodyLayer);
+        event.registerLayerDefinition(LatexSnowFoxFoxyasModel.LAYER_LOCATION, LatexSnowFoxFoxyasModel::createBodyLayer);
+        event.registerLayerDefinition(LatexBorderCollieModel.LAYER_LOCATION, LatexBorderCollieModel::createBodyLayer);
+
 
 
         // --- PROJECTILES ENTITIES MODELS ---
@@ -96,13 +115,13 @@ public class ChangedAddonModels {
         ArmorLatexDragonSnowLeopardSharkModel.MODEL_SET.registerDefinitions(event::registerLayerDefinition);
         ArmorLuminaraFlowerBeastModel.MODEL_SET.registerDefinitions(event::registerLayerDefinition);
         ArmorLatexDazedModel.MODEL_SET.registerDefinitions(event::registerLayerDefinition);
-
+        ArmorProtogen0senia0.ARMOR.registerDefinitions(event::registerLayerDefinition);
 
         // --- Non Anthro Entities Model ---
         event.registerLayerDefinition(LatexSnepModel.LAYER_LOCATION, LatexSnepModel::createBodyLayer);
 
         // --- Block Entities Custom Models ---
-        event.registerLayerDefinition(SnepPlushBlockEntityRenderer.SnepPlushExtraModel.LAYER_LOCATION, SnepPlushBlockEntityRenderer.SnepPlushExtraModel::createBodyLayer);
+        event.registerLayerDefinition(SnepPlushyBlockEntityRenderer.SnepPlushExtraModel.LAYER_LOCATION, SnepPlushyBlockEntityRenderer.SnepPlushExtraModel::createBodyLayer);
         event.registerLayerDefinition(ContainmentContainerRenderer.FluidModelPart.LAYER_LOCATION, ContainmentContainerRenderer.FluidModelPart::createBodyLayer);
     }
 }

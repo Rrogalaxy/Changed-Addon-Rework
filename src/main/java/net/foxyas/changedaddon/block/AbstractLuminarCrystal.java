@@ -5,7 +5,7 @@ import net.foxyas.changedaddon.init.ChangedAddonBlocks;
 import net.foxyas.changedaddon.init.ChangedAddonEntities;
 import net.foxyas.changedaddon.init.ChangedAddonItems;
 import net.foxyas.changedaddon.util.ParticlesUtil;
-import net.foxyas.changedaddon.variants.ChangedAddonTransfurVariants;
+import net.foxyas.changedaddon.variant.ChangedAddonTransfurVariants;
 import net.ltxprogrammer.changed.block.AbstractLatexIceBlock;
 import net.ltxprogrammer.changed.block.TransfurCrystalBlock;
 import net.ltxprogrammer.changed.entity.ChangedEntity;
@@ -24,10 +24,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -36,7 +33,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.*;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -78,40 +74,7 @@ public class AbstractLuminarCrystal {
         double d0 = vec3.x + (i == 0 ? Mth.nextDouble(level.random, -0.5D, 0.5D) : (double) i * 0.55D);
         double d1 = vec3.y + (j == 0 ? Mth.nextDouble(level.random, -0.5D, 0.5D) : (double) j * 0.55D);
         double d2 = vec3.z + (k == 0 ? Mth.nextDouble(level.random, -0.5D, 0.5D) : (double) k * 0.55D);
-        double d3 = i == 0 ? Mth.nextDouble(level.random, -1.0D, 1.0D) : 0.0D;
-        double d4 = j == 0 ? Mth.nextDouble(level.random, -1.0D, 1.0D) : 0.0D;
-        double d5 = k == 0 ? Mth.nextDouble(level.random, -1.0D, 1.0D) : 0.0D;
         ParticlesUtil.sendParticles(level, p_144961_, d0, d1, d2, 0.05, 0.05, 0.05, count, particleSpeed);
-    }
-
-    public static void spawnEndRodParticleOnFace(ServerLevel level, BlockPos pos, Direction direction, int count, float particleSpeed) {
-        ParticleOptions p_144961_ = ParticleTypes.END_ROD;
-        Vec3 vec3 = Vec3.atCenterOf(pos);
-        int i = direction.getStepX();
-        int j = direction.getStepY();
-        int k = direction.getStepZ();
-        double d0 = vec3.x + (i == 0 ? Mth.nextDouble(level.random, -0.5D, 0.5D) : (double) i * 0.55D);
-        double d1 = vec3.y + (j == 0 ? Mth.nextDouble(level.random, -0.5D, 0.5D) : (double) j * 0.55D);
-        double d2 = vec3.z + (k == 0 ? Mth.nextDouble(level.random, -0.5D, 0.5D) : (double) k * 0.55D);
-        double d3 = i == 0 ? Mth.nextDouble(level.random, -1.0D, 1.0D) : 0.0D;
-        double d4 = j == 0 ? Mth.nextDouble(level.random, -1.0D, 1.0D) : 0.0D;
-        double d5 = k == 0 ? Mth.nextDouble(level.random, -1.0D, 1.0D) : 0.0D;
-        ParticlesUtil.sendParticles(level, p_144961_, d0, d1, d2, d3, d4, d5, count, particleSpeed);
-    }
-
-    public static void spawnSnowParticleOnFace(ServerLevel level, BlockPos pos, Direction direction, int count, float particleSpeed) {
-        ParticleOptions p_144961_ = ParticleTypes.SNOWFLAKE;
-        Vec3 vec3 = Vec3.atCenterOf(pos);
-        int i = direction.getStepX();
-        int j = direction.getStepY();
-        int k = direction.getStepZ();
-        double d0 = vec3.x + (i == 0 ? Mth.nextDouble(level.random, -0.5D, 0.5D) : (double) i * 0.55D);
-        double d1 = vec3.y + (j == 0 ? Mth.nextDouble(level.random, -0.5D, 0.5D) : (double) j * 0.55D);
-        double d2 = vec3.z + (k == 0 ? Mth.nextDouble(level.random, -0.5D, 0.5D) : (double) k * 0.55D);
-        double d3 = i == 0 ? Mth.nextDouble(level.random, -1.0D, 1.0D) : 0.0D;
-        double d4 = j == 0 ? Mth.nextDouble(level.random, -1.0D, 1.0D) : 0.0D;
-        double d5 = k == 0 ? Mth.nextDouble(level.random, -1.0D, 1.0D) : 0.0D;
-        ParticlesUtil.sendParticles(level, p_144961_, d0, d1, d2, 0.2, 0.2, 0.2, count, particleSpeed);
     }
 
     public static abstract class Block extends AbstractLatexIceBlock {
@@ -192,11 +155,6 @@ public class AbstractLuminarCrystal {
         }
 
         @Override
-        public void playerDestroy(@NotNull Level p_49827_, @NotNull Player p_49828_, @NotNull BlockPos p_49829_, @NotNull BlockState p_49830_, @Nullable BlockEntity p_49831_, @NotNull ItemStack p_49832_) {
-            super.playerDestroy(p_49827_, p_49828_, p_49829_, p_49830_, p_49831_, p_49832_);
-        }
-
-        @Override
         public boolean onDestroyedByPlayer(BlockState state, Level level, BlockPos pos, Player player, boolean willHarvest, FluidState fluid) {
             if (!(player.isCreative() || player.isSpectator())) {
                 List<AbstractLuminarcticLeopard> lumiList = level.getEntitiesOfClass(AbstractLuminarcticLeopard.class, new AABB(pos).inflate(10));
@@ -259,11 +217,6 @@ public class AbstractLuminarCrystal {
             }
         }
 
-        @Override
-        public void animateTick(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull Random random) {
-            super.animateTick(state, level, pos, random);
-        }
-
         private void triggerCrystal(BlockState blockState, Level level, BlockPos position, Entity entity) {
             if (entity instanceof LivingEntity le && !(entity instanceof ChangedEntity) && !le.isDeadOrDying()) {
                 if (entity instanceof Player player && (ProcessTransfur.isPlayerTransfurred(player) || player.isCreative()))
@@ -320,7 +273,6 @@ public class AbstractLuminarCrystal {
         public @NotNull VoxelShape getCollisionShape(@NotNull BlockState state, @NotNull BlockGetter level, @NotNull BlockPos pos, @NotNull CollisionContext context) {
             return Shapes.empty();
         }
-
 
         @Override
         public int getLightBlock(@NotNull BlockState state, @NotNull BlockGetter worldIn, @NotNull BlockPos pos) {
@@ -393,7 +345,9 @@ public class AbstractLuminarCrystal {
                     if (!livingEntity.hasEffect(MobEffects.WITHER)) {
                         livingEntity.addEffect(EffectInstance);
                     }
-                    livingEntity.setTicksFrozen(livingEntity.getTicksFrozen() + 5);
+                    int pTicksFrozen = livingEntity.getTicksFrozen() + 5;
+                    int frozenTicks = Math.min(livingEntity.getTicksRequiredToFreeze(), pTicksFrozen);
+                    livingEntity.setTicksFrozen(frozenTicks);
                 }
             }
         }
@@ -462,23 +416,8 @@ public class AbstractLuminarCrystal {
         }
 
         @Override
-        public void animateTick(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos, @NotNull Random random) {
-            super.animateTick(state, level, pos, random);
-        }
-
-        @Override
-        public @NotNull PushReaction getPistonPushReaction(@NotNull BlockState p_60584_) {
-            return super.getPistonPushReaction(p_60584_);
-        }
-
-        @Override
         public boolean onDestroyedByPlayer(BlockState state, Level level, BlockPos pos, Player player, boolean willHarvest, FluidState fluid) {
             return super.onDestroyedByPlayer(state, level, pos, player, willHarvest, fluid);
-        }
-
-        @Override
-        public void destroy(@NotNull LevelAccessor p_49860_, @NotNull BlockPos p_49861_, @NotNull BlockState p_49862_) {
-            super.destroy(p_49860_, p_49861_, p_49862_);
         }
 
         @Override
@@ -511,7 +450,7 @@ public class AbstractLuminarCrystal {
                         }
                     }
                 } else {
-                    var leopardType = level.random.nextBoolean()
+                    EntityType<? extends AbstractLuminarcticLeopard> leopardType = level.random.nextBoolean()
                             ? ChangedAddonEntities.LUMINARCTIC_LEOPARD_FEMALE.get()
                             : ChangedAddonEntities.LUMINARCTIC_LEOPARD_MALE.get();
 
@@ -521,35 +460,50 @@ public class AbstractLuminarCrystal {
                             newLeopard.setBoss(true);
                         }
 
-                        BlockPos spawnPos = pos;
-
-                        /*if (oldState.hasProperty(BlockStateProperties.FACING)) {
-                            Direction facing = oldState.getValue(BlockStateProperties.FACING);
-                            spawnPos = pos.relative(facing);
-                        }
-*/
-
-                        Vec3 spawnVec = new Vec3(spawnPos.getX() + 0.5D, spawnPos.getY(), spawnPos.getZ() + 0.5D);
+                        BlockPos.MutableBlockPos spawnPos = pos.mutable();
+                        Vec3 spawnVec = Vec3.atCenterOf(spawnPos);
                         newLeopard.setPos(spawnVec.x, spawnVec.y, spawnVec.z);
                         newLeopard.finalizeSpawn(serverLevel, serverLevel.getCurrentDifficultyAt(pos), MobSpawnType.MOB_SUMMONED, null, null);
                         if (closestEntity != null) {
                             newLeopard.setTarget(closestEntity);
 
-                            // Posição atrás da entidade (um bloco de distância)
-                            Vec3 targetPos = closestEntity.position().add(
-                                    closestEntity.getViewVector(1).scale(-1.5) // escala define distância
-                            );
+                            boolean placed = false;
 
-                            spawnPos = new BlockPos(targetPos);
+                            for (double dist = 0.5; dist <= 1.5; dist += 0.5) {
 
-                            if (level.getBlockState(spawnPos).isAir() &&
-                                    level.getBlockState(spawnPos.above()).isAir()) {
+                                Vec3 backward = Vec3.directionFromRotation(0, closestEntity.getYRot());
+                                Vec3 behind = closestEntity.position().subtract(backward.scale(dist));
 
-                                spawnPos = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, spawnPos);
+                                BlockPos.MutableBlockPos candidate = new BlockPos(behind).mutable();
 
-                                newLeopard.setPos(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5);
-                                level.addFreshEntity(newLeopard);
+                                newLeopard.setPos(Vec3.atCenterOf(candidate));
+
+                                if (level.noCollision(newLeopard)
+                                        && level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP)
+                                        && newLeopard.hasLineOfSight(closestEntity)) {
+
+                                    spawnPos.set(candidate);
+                                    placed = true;
+                                    break;
+                                } else {
+                                    BlockPos.MutableBlockPos moved = candidate.above().mutable();
+                                    if (level.noCollision(newLeopard)
+                                            && level.getBlockState(moved.below()).isFaceSturdy(level, moved.below(), Direction.UP)
+                                            && newLeopard.hasLineOfSight(closestEntity)) {
+
+                                        spawnPos.set(moved);
+                                        placed = true;
+                                        break;
+                                    }
+                                }
                             }
+
+                            // fallback final
+                            if (!placed) {
+                                spawnPos.set(pos);
+                                newLeopard.setPos(Vec3.atCenterOf(spawnPos));
+                            }
+
                         }
                         level.addFreshEntity(newLeopard);
                         newLeopard.playSound(SoundEvents.ENDERMAN_SCREAM, 1, 0);

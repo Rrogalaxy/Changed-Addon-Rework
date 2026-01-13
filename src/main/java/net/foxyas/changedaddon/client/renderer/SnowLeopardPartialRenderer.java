@@ -2,7 +2,7 @@ package net.foxyas.changedaddon.client.renderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.foxyas.changedaddon.client.model.SnowLeopardPartialModel;
-import net.foxyas.changedaddon.entity.advanced.SnowLeopardPartialEntity;
+import net.foxyas.changedaddon.entity.partials.SnowLeopardPartialEntity;
 import net.ltxprogrammer.changed.client.renderer.AdvancedHumanoidRenderer;
 import net.ltxprogrammer.changed.client.renderer.layers.*;
 import net.ltxprogrammer.changed.client.renderer.model.armor.ArmorLatexMaleCatModel;
@@ -36,7 +36,7 @@ public class SnowLeopardPartialRenderer extends AdvancedHumanoidRenderer<SnowLeo
     }
 
     private static ResourceLocation getTexture(boolean slim) {
-        return new ResourceLocation("changed_addon", slim ? "textures/entities/snow_leopard_partial_slim.png" : "textures/entities/snow_leopard_partial.png");
+        return ResourceLocation.fromNamespaceAndPath("changed_addon", slim ? "textures/entities/snow_leopard_partial_slim.png" : "textures/entities/snow_leopard_partial.png");
     }
 
     public static EntityRendererProvider<SnowLeopardPartialEntity> forModelSize(boolean slim) {

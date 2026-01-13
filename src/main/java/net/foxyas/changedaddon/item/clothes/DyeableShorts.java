@@ -3,55 +3,36 @@ package net.foxyas.changedaddon.item.clothes;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import net.foxyas.changedaddon.init.ChangedAddonItems;
-import net.foxyas.changedaddon.init.ChangedAddonTabs;
 import net.ltxprogrammer.changed.data.AccessorySlotType;
 import net.ltxprogrammer.changed.init.ChangedAccessorySlots;
-import net.ltxprogrammer.changed.init.ChangedSounds;
-import net.ltxprogrammer.changed.init.ChangedTabs;
-import net.ltxprogrammer.changed.item.ClothingItem;
-import net.ltxprogrammer.changed.util.Color3;
-import net.minecraft.client.Minecraft;
-import net.minecraft.core.NonNullList;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.sounds.SoundEvent;
+import net.minecraft.core.cauldron.CauldronInteraction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.DyeableLeatherItem;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.client.event.ColorHandlerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.awt.*;
 
 
-public class DyeableShorts extends ClothingItem implements DyeableLeatherItem {
+public class DyeableShorts extends DyeableClothingItem implements DyeableLeatherItem {
 
     public DyeableShorts() {
         super();
+        CauldronInteraction.WATER.put(this, CauldronInteraction.DYED_ITEM);
     }
 
     @Override
     public boolean allowedInSlot(ItemStack itemStack, LivingEntity wearer, AccessorySlotType slot) {
         return slot == ChangedAccessorySlots.LEGS.get() || slot == ChangedAccessorySlots.LOWER_BODY.get();
-    }
-
-    public boolean isDamageable(ItemStack stack) {
-        return false;
-    }
-
-    public SoundEvent getEquipSound() {
-        return ChangedSounds.EQUIP3;
     }
 
     @Override
@@ -62,39 +43,8 @@ public class DyeableShorts extends ClothingItem implements DyeableLeatherItem {
     }
 
     @Override
-    public int getColor(ItemStack pStack) {
-        CompoundTag tag = pStack.getTagElement("display");
-        return tag != null && tag.contains("color", 99) ? tag.getInt("color") : 0xffffff;
-    }
-
-    @Override
     public Multimap<Attribute, AttributeModifier> getAttributeModifiers(EquipmentSlot slot, ItemStack stack) {
         return ImmutableMultimap.of();
-    }
-
-    public SoundEvent getBreakSound(ItemStack itemStack) {
-        return ChangedSounds.SLASH10;
-    }
-
-    @Override
-    public void fillItemCategory(@NotNull CreativeModeTab tab, @NotNull NonNullList<ItemStack> items) {
-        if (this.allowdedIn(tab)) {
-            for (DefaultColors color : DefaultColors.values()) {
-                ItemStack stack = new ItemStack(this);
-                this.setColor(stack, color.getColorToInt());
-                items.add(stack);
-            }
-        }
-    }
-
-    @Override
-    protected boolean allowdedIn(@NotNull CreativeModeTab tab) {
-        if (tab == ChangedTabs.TAB_CHANGED_ITEMS) {
-            return false;
-        } else if (tab == ChangedAddonTabs.TAB_CHANGED_ADDON) {
-            return true;
-        }
-        return super.allowdedIn(tab);
     }
 
     @Override
@@ -103,37 +53,6 @@ public class DyeableShorts extends ClothingItem implements DyeableLeatherItem {
             return "changed_addon:textures/models/armor/dyeable_shorts_layer_1_overlay.png"; // totalmente invisível
         }
         return "changed_addon:textures/models/armor/dyeable_shorts_layer_1.png";
-    }
-
-    public enum DefaultColors {
-        RED(new Color(255, 0, 0)),
-        GREEN(new Color(0, 255, 0)),
-        BLUE(new Color(0, 0, 255)),
-        YELLOW(new Color(255, 255, 0)),
-        CYAN(new Color(0, 255, 255)),
-        MAGENTA(new Color(255, 0, 255)),
-        ORANGE(new Color(255, 165, 0)),
-        PINK(new Color(255, 105, 180)),
-        WHITE(new Color(255, 255, 255));
-
-        public final Color color;
-
-        DefaultColors(Color color) {
-            this.color = color;
-        }
-
-        // Construtor sem argumentos, caso queira usar valores padrão depois
-        DefaultColors() {
-            this.color = new Color(255, 255, 255); // fallback: branco
-        }
-
-        public Color getColor() {
-            return color;
-        }
-
-        public int getColorToInt() {
-            return color.getRGB();
-        }
     }
 
     @OnlyIn(Dist.CLIENT)

@@ -1,8 +1,8 @@
 {
   "parent": "changed_addon:custom/luminar_spear",
   "textures": {
-    "0": "changed_addon:blocks/luminar_crystal_spear",
-    "particle": "changed_addon:items/air"
+    "0": "changed_addon:block/luminar_crystal_spear",
+    "particle": "changed_addon:item/air"
   },
   "overrides": [
     {

@@ -10,7 +10,6 @@ import net.ltxprogrammer.changed.init.ChangedCriteriaTriggers;
 import net.ltxprogrammer.changed.init.ChangedItems;
 import net.ltxprogrammer.changed.process.ProcessTransfur;
 import net.minecraft.Util;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -36,6 +35,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.gameevent.GameEvent;
+import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.scores.Team;
 import net.minecraftforge.common.IExtensibleEnum;
 import org.apache.commons.lang3.NotImplementedException;
@@ -67,22 +67,12 @@ public abstract class AbstractCanTameSnepChangedEntity extends AbstractSnowLeopa
         this.entityData.define(DATA_OWNERUUID_ID, Optional.empty());
     }
 
-    @Override
-    public void stopSleeping() {
-        super.stopSleeping();
-        //if (this.getPose() == Pose.SLEEPING) {
-        //    this.setPose(Pose.STANDING);
-        //}
-    }
-
-    @Override
-    public void startSleeping(@NotNull BlockPos blockPos) {
-        super.startSleeping(blockPos);
-        //this.setPose(Pose.SLEEPING);
-    }
-
     public boolean isBiped() {
         return true;
+    }
+
+    public static LootTable.@NotNull Builder getLoot() {
+        return LootTable.lootTable();
     }
 
     @Override
@@ -123,7 +113,7 @@ public abstract class AbstractCanTameSnepChangedEntity extends AbstractSnowLeopa
 
     @Override
     protected boolean targetSelectorTest(LivingEntity livingEntity) {
-        return livingEntity != this.getOwner();
+        return super.targetSelectorTest(livingEntity) && livingEntity != this.getOwner();
     }
 
     @Nullable
@@ -318,7 +308,7 @@ public abstract class AbstractCanTameSnepChangedEntity extends AbstractSnowLeopa
                 || stack.is(Items.COOKED_COD)
                 || stack.is(Items.SALMON)
                 || stack.is(Items.COOKED_SALMON)
-                || stack.is(ItemTags.create(new ResourceLocation(tameType.Tag)));
+                || stack.is(ItemTags.create(ResourceLocation.parse(tameType.Tag)));
     }
 
     //Default Use Type

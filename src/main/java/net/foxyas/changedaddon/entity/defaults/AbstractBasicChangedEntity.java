@@ -1,12 +1,9 @@
 package net.foxyas.changedaddon.entity.defaults;
 
-import net.foxyas.changedaddon.util.ColorUtil;
 import net.ltxprogrammer.changed.entity.ChangedEntity;
 import net.ltxprogrammer.changed.entity.HairStyle;
 import net.ltxprogrammer.changed.entity.LatexType;
-import net.ltxprogrammer.changed.entity.variant.TransfurVariantInstance;
 import net.ltxprogrammer.changed.init.ChangedAttributes;
-import net.ltxprogrammer.changed.process.ProcessTransfur;
 import net.ltxprogrammer.changed.util.Color3;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -18,6 +15,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraftforge.common.ForgeMod;
 import org.jetbrains.annotations.NotNull;
 
@@ -34,7 +32,11 @@ public abstract class AbstractBasicChangedEntity extends ChangedEntity {
     public static void init() {
     }
 
-    protected void safeSetBaseValue(@org.jetbrains.annotations.Nullable AttributeInstance instance, double value) {
+    public static LootTable.@NotNull Builder getLoot() {
+        return LootTable.lootTable();
+    }
+
+    protected void safeSetBaseValue(@Nullable AttributeInstance instance, double value) {
         if (instance != null) {
             instance.setBaseValue(value);
         }
@@ -75,23 +77,6 @@ public abstract class AbstractBasicChangedEntity extends ChangedEntity {
     @Override
     public @Nullable List<HairStyle> getValidHairStyles() {
         return HairStyle.Collection.MALE.getStyles();
-    }
-
-    @Override
-    protected void registerGoals() {
-        super.registerGoals();
-		/*
-		this.goalSelector.addGoal(1, new MeleeAttackGoal(this, 1.2, false) {
-			@Override
-			protected double getAttackReachSqr(LivingEntity entity) {
-				return this.mob.getBbWidth() * this.mob.getBbWidth() + entity.getBbWidth();
-			}
-		});
-		this.goalSelector.addGoal(2, new RandomStrollGoal(this, 1));
-		this.targetSelector.addGoal(3, new HurtByTargetGoal(this));
-		this.goalSelector.addGoal(4, new RandomLookAroundGoal(this));
-		this.goalSelector.addGoal(5, new FloatGoal(this));
-		*/
     }
 
     @Override

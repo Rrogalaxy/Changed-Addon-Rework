@@ -1,6 +1,7 @@
 package net.foxyas.changedaddon.entity.goals.exp10;
 
 import net.foxyas.changedaddon.util.ParticlesUtil;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -9,13 +10,13 @@ import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.goal.Goal;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.EnumSet;
 import java.util.List;
 
 public class WitherWave extends Goal {
+
     private final Mob mob;
     private final UniformInt cooldownProvider;
     private int cooldown;

@@ -2,7 +2,7 @@ package net.foxyas.changedaddon.datagen;
 
 import net.foxyas.changedaddon.ChangedAddonMod;
 import net.foxyas.changedaddon.init.ChangedAddonTags;
-import net.foxyas.changedaddon.init.ChangedTagsExtension;
+import net.foxyas.changedaddon.init.ChangedTags;
 import net.ltxprogrammer.changed.init.ChangedItems;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.tags.BlockTagsProvider;
@@ -19,9 +19,9 @@ import static net.foxyas.changedaddon.init.ChangedAddonItems.*;
 
 public class ItemTagsProvider extends net.minecraft.data.tags.ItemTagsProvider {
 
-    static final TagKey<Item> forgeRawIridium = ItemTags.create(new ResourceLocation("forge", "raw_materials/iridium"));
-    static final TagKey<Item> forgeIngotsIridium = ItemTags.create(new ResourceLocation("forge", "ingots/iridium"));
-    static final TagKey<Item> forgeStorageBlocksIridium = ItemTags.create(new ResourceLocation("forge", "storage_blocks/iridium"));
+    static final TagKey<Item> forgeRawIridium = ItemTags.create(ResourceLocation.fromNamespaceAndPath("forge", "raw_materials/iridium"));
+    static final TagKey<Item> forgeIngotsIridium = ItemTags.create(ResourceLocation.fromNamespaceAndPath("forge", "ingots/iridium"));
+    static final TagKey<Item> forgeStorageBlocksIridium = ItemTags.create(ResourceLocation.fromNamespaceAndPath("forge", "storage_blocks/iridium"));
 
     public ItemTagsProvider(DataGenerator generator, BlockTagsProvider blocks, @Nullable ExistingFileHelper existingFileHelper) {
         super(generator, blocks, ChangedAddonMod.MODID, existingFileHelper);
@@ -39,12 +39,14 @@ public class ItemTagsProvider extends net.minecraft.data.tags.ItemTagsProvider {
         tag(forgeStorageBlocksIridium).add(IRIDIUM_BLOCK.get());
 
 
-        tag(ChangedTagsExtension.AccessoryItemsTags.BODY).add(
+        tag(ChangedTags.AccessoryItems.FULL_BODY)
+                .add(HAZARD_BODY_SUIT.get());
+        tag(ChangedTags.AccessoryItems.BODY).add(
                 DYEABLE_TSHIRT.get());
-        tag(ChangedTagsExtension.AccessoryItemsTags.LEGS).add(
+        tag(ChangedTags.AccessoryItems.LEGS).add(
                 DYEABLE_SHORTS.get());
 
-        tag(ChangedAddonTags.Items.METAL).add(//TODO add guns?
+        tag(ChangedAddonTags.Items.METAL).add( //TODO add guns?
                 Items.IRON_SWORD, Items.IRON_PICKAXE, Items.IRON_AXE, Items.IRON_HOE, Items.IRON_SHOVEL,
                 Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS,
                 ChangedItems.IRON_QUADRUPEDAL_LEGGINGS.get(), ChangedItems.IRON_QUADRUPEDAL_BOOTS.get(), ChangedItems.IRON_UPPER_ABDOMEN_ARMOR.get(), ChangedItems.IRON_LOWER_ABDOMEN_ARMOR.get(),
@@ -113,8 +115,6 @@ public class ItemTagsProvider extends net.minecraft.data.tags.ItemTagsProvider {
                 ELECTRIC_KATANA.get(),
                 ELECTRIC_KATANA_RED.get(),
                 THE_DECIMATOR.get(),
-                PAINITE_SWORD.get(),
-                PAINITE_AXE.get(),
                 CROWBAR.get(),
                 Items.WOODEN_SWORD,
                 Items.WOODEN_AXE,

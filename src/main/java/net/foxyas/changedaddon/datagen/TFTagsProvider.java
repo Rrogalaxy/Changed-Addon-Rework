@@ -24,7 +24,7 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static net.foxyas.changedaddon.variants.ChangedAddonTransfurVariants.*;
+import static net.foxyas.changedaddon.variant.ChangedAddonTransfurVariants.*;
 
 public class TFTagsProvider extends TagsProvider<TransfurVariant<?>> {
 
@@ -127,7 +127,7 @@ public class TFTagsProvider extends TagsProvider<TransfurVariant<?>> {
 
             @Override
             public HolderSet.@NotNull Named<TransfurVariant<?>> getOrCreateTag(@NotNull TagKey<TransfurVariant<?>> p_206045_) {
-                return new HolderSet.Named<>(this, TagKey.create(key(), new ResourceLocation("null")));
+                return new HolderSet.Named<>(this, TagKey.create(key(), ResourceLocation.parse("null")));
             }
 
             @Override
@@ -177,7 +177,14 @@ public class TFTagsProvider extends TagsProvider<TransfurVariant<?>> {
         tag(ChangedAddonTags.TransfurTypes.ABLE_TO_CARRY).add(EXP6.get());
         tag(ChangedAddonTags.TransfurTypes.CAUSE_FREEZING).add(LUMINARCTIC_LEOPARD_MALE.get(), LUMINARCTIC_LEOPARD_FEMALE.get());
         tag(ChangedAddonTags.TransfurTypes.GLOWING_VARIANTS).add(EXPERIMENT_009.get(), EXPERIMENT_009_BOSS.get(), EXPERIMENT_10.get(), EXPERIMENT_10_BOSS.get());
-        tag(ChangedAddonTags.TransfurTypes.HAS_CLAWS).add(LATEX_KITSUNE_FEMALE.get(), LATEX_KITSUNE_MALE.get(), FENGQI_WOLF.get(), LUMINARA_FLOWER_BEAST.get());
+        tag(ChangedAddonTags.TransfurTypes.HAS_CLAWS).add(
+                LATEX_KITSUNE_FEMALE.get(),
+                LATEX_KITSUNE_MALE.get(),
+                FENGQI_WOLF.get(),
+                LUMINARA_FLOWER_BEAST.get(),
+                PROTOGEN_0SENIA0.get(),
+                LATEX_KAYLA_SHARK.get()
+        );
 
 
         tag(ChangedAddonTags.TransfurTypes.AQUATIC_LIKE).add(LATEX_DRAGON_SNEP_SHARK.get());
@@ -193,7 +200,9 @@ public class TFTagsProvider extends TagsProvider<TransfurVariant<?>> {
                 LYNX.get(),
                 SNEPSI_LEOPARD.get(),
                 LATEX_CHEETAH_MALE.get(),
-                LATEX_CHEETAH_FEMALE.get());
+                LATEX_CHEETAH_FEMALE.get(),
+                ChangedTransfurVariants.LATEX_STIGER.get(),
+                ChangedTransfurVariants.LATEX_WHITE_TIGER.get());
 
         addAllMatching(tag(ChangedAddonTags.TransfurTypes.DRAGON_LIKE), var -> var.getRegistryName().getPath().contains("dragon")).add(LUMINARA_FLOWER_BEAST.get());
 

@@ -8,24 +8,19 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -192,12 +187,14 @@ public abstract class AbstractVoidFoxParticleProjectile extends ParriableProject
         if (this.tickCount > 400) {
             ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.05f, 0.05f, 0.05f, 20, 0.5f);
             this.discard();
+            return;
         }
 
         if (this.lifeSpamNearTarget >= 100) {
             ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.05f, 0.05f, 0.05f, 20, 0.5f);
             this.lifeSpamWithoutTarget = 0;
             this.discard();
+            return;
         }
 
 
@@ -206,6 +203,7 @@ public abstract class AbstractVoidFoxParticleProjectile extends ParriableProject
             if (this.onGround) {
                 ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.05f, 0.05f, 0.05f, 20, 0.5f);
                 this.discard();
+                return;
             }
             this.lifeSpamWithoutTarget = 0;
             double dx = targetPos.x() - getX();
@@ -215,7 +213,7 @@ public abstract class AbstractVoidFoxParticleProjectile extends ParriableProject
             double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
             this.lookAt(EntityAnchorArgument.Anchor.EYES, targetPos);
 
-            if (distance > 0.1f) {
+            if (distance > 1f) {
                 double speed = 0.35;
 
                 // Direção normalizada desejada
@@ -225,6 +223,9 @@ public abstract class AbstractVoidFoxParticleProjectile extends ParriableProject
                     this.applyMotionSmooth(desiredMotion);
                 } else {
                     this.applyMotion(desiredMotion);
+                }
+                if (Math.sqrt(this.distanceToSqr(targetPos)) <= 1) {
+                    lifeSpamNearTarget++;
                 }
             } else {
                 lifeSpamNearTarget++;
@@ -240,16 +241,19 @@ public abstract class AbstractVoidFoxParticleProjectile extends ParriableProject
             if (getOwner() != null && livingTarget.is(getOwner())) {
                 ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.05f, 0.05f, 0.05f, 20, 0.5f);
                 this.discard();
+                return;
             }
             if (this.onGround) {
                 ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.05f, 0.05f, 0.05f, 20, 0.5f);
                 this.discard();
+                return;
             }
             this.lifeSpamWithoutTarget = 0;
             if (livingTarget instanceof Player player) {
                 if (player.isCreative() || player.isSpectator()) {
                     ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.05f, 0.05f, 0.05f, 20, 0.5f);
                     this.discard();
+                    return;
                 }
             }
             double dx = livingTarget.getX() - getX();
@@ -260,7 +264,7 @@ public abstract class AbstractVoidFoxParticleProjectile extends ParriableProject
 
             double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-            if (distance > 0.1f) {
+            if (distance > 1f) {
                 double speed = 0.35;
 
                 // Direção normalizada desejada
@@ -270,6 +274,9 @@ public abstract class AbstractVoidFoxParticleProjectile extends ParriableProject
                     this.applyMotionSmooth(desiredMotion);
                 } else {
                     this.applyMotion(desiredMotion);
+                }
+                if (Math.sqrt(this.distanceToSqr(livingTarget)) <= 1) {
+                    lifeSpamNearTarget++;
                 }
             } else {
                 lifeSpamNearTarget++;
@@ -281,11 +288,13 @@ public abstract class AbstractVoidFoxParticleProjectile extends ParriableProject
                 ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.05f, 0.05f, 0.05f, 20, 0.5f);
                 this.lifeSpamWithoutTarget = 0;
                 this.discard();
+                return;
             }
         } else if (!level.isClientSide() && (this.getOwner() == null
                 || (this.getOwner() instanceof LivingEntity livingEntity && livingEntity.isDeadOrDying()))) {
             ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.05f, 0.05f, 0.05f, 20, 0.5f);
             this.discard();
+            return;
         }
 
         ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.3f, 0.3f, 0.3f, 1, 0.005f);
@@ -353,6 +362,7 @@ public abstract class AbstractVoidFoxParticleProjectile extends ParriableProject
                 livingEntity.hurtDuration = 1;
                 livingEntity.hurtDir = 1;
                 livingEntity.hurtTime = 1;
+                livingEntity.hurtMarked = false;
             }
         }
 
@@ -362,8 +372,10 @@ public abstract class AbstractVoidFoxParticleProjectile extends ParriableProject
             ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.05f, 0.05f, 0.05f, 5, 0.5f);
             super.onHitEntity(result);
             if (result.getEntity().hurtMarked) {
-                ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.05f, 0.05f, 0.05f, 20, 0.5f);
-                this.discard();
+                if (!this.isRemoved()) {
+                    ParticlesUtil.sendParticles(this.level, particle, this.position(), 0.05f, 0.05f, 0.05f, 20, 0.5f);
+                    this.discard();
+                }
             }
         }
     }
@@ -434,9 +446,8 @@ public abstract class AbstractVoidFoxParticleProjectile extends ParriableProject
             if (this.isInvulnerableTo(damageSource)) {
                 return false;
             }
-            this.setDeltaMovement(this.getDeltaMovement().scale(-amount * 0.1));
-            this.lifeSpamNearTarget = 0;
-            this.lifeSpamWithoutTarget = 0;
+            this.setDeltaMovement(this.getDeltaMovement().scale(-amount * 0.25));
+            this.lifeSpamNearTarget += 50;
             this.markHurt();
             if (!level.isClientSide() && level instanceof ServerLevel serverLevel) {
                 serverLevel.playSound(null, this.position().x, this.position().y, this.position().z, SoundEvents.SHIELD_BLOCK, SoundSource.MASTER, 1.0F, 1.0F);

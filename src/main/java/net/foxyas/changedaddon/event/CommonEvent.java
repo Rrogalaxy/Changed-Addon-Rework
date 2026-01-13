@@ -1,22 +1,26 @@
 package net.foxyas.changedaddon.event;
 
+import com.mojang.brigadier.CommandDispatcher;
 import net.foxyas.changedaddon.ChangedAddonMod;
+import net.foxyas.changedaddon.command.*;
+import net.foxyas.changedaddon.entity.api.IAlphaAbleEntity;
 import net.foxyas.changedaddon.init.ChangedAddonAttributes;
 import net.foxyas.changedaddon.init.ChangedAddonGameRules;
 import net.foxyas.changedaddon.init.ChangedAddonMobEffects;
-import net.foxyas.changedaddon.network.ChangedAddonModVariables;
+import net.foxyas.changedaddon.network.ChangedAddonVariables;
 import net.foxyas.changedaddon.util.TransfurVariantUtils;
+import net.foxyas.changedaddon.variant.ChangedAddonTransfurVariants;
 import net.ltxprogrammer.changed.entity.TransfurCause;
 import net.ltxprogrammer.changed.entity.TransfurContext;
-import net.ltxprogrammer.changed.entity.variant.TransfurVariant;
 import net.ltxprogrammer.changed.entity.variant.TransfurVariantInstance;
 import net.ltxprogrammer.changed.init.ChangedItems;
 import net.ltxprogrammer.changed.init.ChangedSounds;
-import net.ltxprogrammer.changed.init.ChangedTransfurVariants;
 import net.ltxprogrammer.changed.item.Syringe;
 import net.ltxprogrammer.changed.process.ProcessTransfur;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementProgress;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
@@ -24,15 +28,35 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.List;
-
 @Mod.EventBusSubscriber(modid = ChangedAddonMod.MODID)
 public class CommonEvent {
+
+    @SubscribeEvent
+    public static void modifyExperience(LivingExperienceDropEvent experienceDropEvent) {
+        int experience = experienceDropEvent.getDroppedExperience();
+        if (experienceDropEvent.getEntity() instanceof IAlphaAbleEntity iAlphaAbleEntity && iAlphaAbleEntity.isAlpha()) {
+            experienceDropEvent.setDroppedExperience((int) (experience * iAlphaAbleEntity.alphaAdditionalScale()));
+        }
+    }
+
+    @SubscribeEvent
+    public static void registerCommands(RegisterCommandsEvent event){
+        CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
+        ChangedAddonAdminCommand.register(dispatcher);
+        ChangedAddonCommandRootCommand.register(dispatcher);
+        AccessoryItemCommands.register(dispatcher);
+        TransfurMe.register(dispatcher);
+        ChangedAddonDebugCommands.register(dispatcher);
+    }
 
     @SubscribeEvent
     public static void persistAttributes(PlayerEvent.Clone event) {
@@ -47,31 +71,31 @@ public class CommonEvent {
     public static void onPlayerLoggedInSyncPlayerVariables(PlayerEvent.PlayerLoggedInEvent event) {
         Player player = event.getPlayer();
         if (!player.level.isClientSide())
-            ChangedAddonModVariables.PlayerVariables.ofOrDefault(player).syncPlayerVariables(player);
+            ChangedAddonVariables.ofOrDefault(player).syncPlayerVariables(player);
     }
 
     @SubscribeEvent
     public static void onPlayerRespawnedSyncPlayerVariables(PlayerEvent.PlayerRespawnEvent event) {
         Player player = event.getPlayer();
         if (!player.level.isClientSide())
-            ChangedAddonModVariables.PlayerVariables.ofOrDefault(player).syncPlayerVariables(player);
+            ChangedAddonVariables.ofOrDefault(player).syncPlayerVariables(player);
     }
 
     @SubscribeEvent
     public static void onPlayerChangedDimensionSyncPlayerVariables(PlayerEvent.PlayerChangedDimensionEvent event) {
         Player player = event.getPlayer();
         if (!player.level.isClientSide())
-            ChangedAddonModVariables.PlayerVariables.ofOrDefault(player).syncPlayerVariables(player);
+            ChangedAddonVariables.ofOrDefault(player).syncPlayerVariables(player);
     }
 
     @SubscribeEvent
     public static void clonePlayer(PlayerEvent.Clone event) {
         Player originalPl = event.getOriginal();
         originalPl.reviveCaps();
-        ChangedAddonModVariables.PlayerVariables original = ChangedAddonModVariables.PlayerVariables.ofOrDefault(originalPl);
+        ChangedAddonVariables.PlayerVariables original = ChangedAddonVariables.ofOrDefault(originalPl);
         originalPl.invalidateCaps();
 
-        ChangedAddonModVariables.PlayerVariables clone = ChangedAddonModVariables.PlayerVariables.ofOrDefault(event.getPlayer());
+        ChangedAddonVariables.PlayerVariables clone = ChangedAddonVariables.ofOrDefault(event.getPlayer());
         original.copyTo(clone, event.isWasDeath());
     }
     //
@@ -85,19 +109,38 @@ public class CommonEvent {
 
         maskTransfur(player, player.level);
 
-        tickInfectionAndRes(player);
-
         tickUntransfur(player);
 
         triggerSwimRegret(player);
     }
 
-    private static void maskTransfur(Player player, Level level) {
-        int doTransfur = level.getLevelData().getGameRules().getInt(ChangedAddonGameRules.DO_DARK_LATEX_MASK_TRANSFUR);
-        if (doTransfur <= 0) return;
-        if (player.isCreative() || player.isSpectator()) {
-            return;
+    @SubscribeEvent
+    public static void onFarmlandTrampleWhenTransfured(BlockEvent.FarmlandTrampleEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            TransfurVariantInstance<?> transfurVariant = ProcessTransfur.getPlayerTransfurVariant(player);
+            if (transfurVariant != null && transfurVariant.is(ChangedAddonTransfurVariants.PROTOTYPE)) {
+                event.setCanceled(true);
+            }
+            /* Todo?
+                maybe make the player only trample the dirt if the entity base of the variant can trample?
+            else if (transfurVariant != null) {
+                BlockState state = event.getState();
+                BlockPos pos = event.getPos();
+                float fallDistance = event.getFallDistance();
+                event.setCanceled(!(transfurVariant.getChangedEntity().canTrample(state, pos, fallDistance)));
+            }*/
         }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerProgressTransfurTick(ProgressTransfurEvents.TickPlayerTransfurProgressEvent tickPlayerTransfurProgressEvent) {
+        tickInfectionAndRes(tickPlayerTransfurProgressEvent);
+    }
+
+    private static void maskTransfur(Player player, Level level) {
+        int doTransfur = level.getLevelData().getGameRules().getInt(ChangedAddonGameRules.TICKS_TO_DARK_LATEX_MASK_TRANSFUR);
+        if (doTransfur <= 0) return;
+        if (player.isCreative() || player.isSpectator()) return;
 
         if (!player.getPersistentData().contains("HoldingDarkLatexMask")) {
             player.getPersistentData().putInt("HoldingDarkLatexMask", 0);
@@ -148,30 +191,51 @@ public class CommonEvent {
         player.getPersistentData().remove("HoldingDarkLatexMask");
     }
 
-    private static void tickInfectionAndRes(Player player) {
+    private static void tickInfectionAndRes(ProgressTransfurEvents.TickPlayerTransfurProgressEvent event) {
+        Player player = event.getPlayer();
         if (ProcessTransfur.isPlayerTransfurred(player)) return;
 
         float progress = ProcessTransfur.getPlayerTransfurProgress(player);
+        if (progress < 0) return;
         float newProgress = progress;
 
         float latexRes = (float) player.getAttributeValue(ChangedAddonAttributes.LATEX_RESISTANCE.get());
-        if (latexRes > 0) newProgress -= .5f * latexRes;
+        float infection = (float) player.getAttributeValue(ChangedAddonAttributes.LATEX_INFECTION.get());
+        float tolerance = (float) ProcessTransfur.getEntityTransfurTolerance(player);
 
-        if (!player.isCreative() && !player.isSpectator()) {
-            float TransfurInfectionAttribute = (float) player.getAttributeValue(ChangedAddonAttributes.LATEX_INFECTION.get());
-            if (TransfurInfectionAttribute > 0) {
-                newProgress += progress * TransfurInfectionAttribute / 100;
-                newProgress = Mth.clamp(newProgress, 0f, (float) ProcessTransfur.getEntityTransfurTolerance(player) * 0.995f);
-            }
+        boolean infectionWins = infection > latexRes;
+        boolean resistanceWins = latexRes >= infection;
+
+
+        // --- Resistance Wins
+        if (resistanceWins) {
+            newProgress -= 0.5f * latexRes;
         }
 
-        if (progress != newProgress) {
-            ProcessTransfur.setPlayerTransfurProgress(player, newProgress);
+        // --- Infection Wins
+        else if (infectionWins) {
+            newProgress += progress * (infection / 50f);
+
+            // Block the natural Tick
+            event.setCanceled(true);
+        }
+
+        if (player.tickCount % 20 == 0) { // only process after 1 second
+            if (!player.isCreative() && !player.isSpectator()) {
+
+                newProgress = Mth.clamp(newProgress, 0f, tolerance * 0.998f);
+
+                // Apply only if there is chances
+                if (newProgress != progress) {
+                    ProcessTransfur.setPlayerTransfurProgress(player, newProgress);
+                }
+            }
         }
     }
 
+
     private static void tickUntransfur(Player player) {
-        ChangedAddonModVariables.PlayerVariables vars = ChangedAddonModVariables.PlayerVariables.of(player);
+        ChangedAddonVariables.PlayerVariables vars = ChangedAddonVariables.of(player);
         if (vars == null) return;
 
         if (!player.hasEffect(ChangedAddonMobEffects.UNTRANSFUR.get())) {

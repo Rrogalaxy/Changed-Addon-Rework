@@ -3,7 +3,6 @@ package net.foxyas.changedaddon.client.model.armors;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.foxyas.changedaddon.ChangedAddonMod;
-import net.foxyas.changedaddon.entity.advanced.DazedLatexEntity;
 import net.ltxprogrammer.changed.client.renderer.animate.AnimatorPresets;
 import net.ltxprogrammer.changed.client.renderer.animate.HumanoidAnimator;
 import net.ltxprogrammer.changed.client.renderer.model.armor.ArmorModel;
@@ -119,7 +118,7 @@ public class ArmorLatexDazedModel<T extends ChangedEntity> extends LatexHumanoid
         return this.animator;
     }
 
-    public ModelPart getArm(HumanoidArm arm) {
+    public @NotNull ModelPart getArm(HumanoidArm arm) {
         return arm == HumanoidArm.LEFT ? this.LeftArm : this.RightArm;
     }
 
@@ -127,7 +126,7 @@ public class ArmorLatexDazedModel<T extends ChangedEntity> extends LatexHumanoid
         return leg == HumanoidArm.LEFT ? this.LeftLeg : this.RightLeg;
     }
 
-    public ModelPart getHead() {
+    public @NotNull ModelPart getHead() {
         return this.Head;
     }
 

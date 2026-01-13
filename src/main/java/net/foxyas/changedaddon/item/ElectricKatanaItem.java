@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.function.Consumer;
 
 public class ElectricKatanaItem extends AbstractKatanaItem {
+
     private static final ModelResourceLocation GUI_MODEL =
             new ModelResourceLocation(ChangedAddonMod.resourceLoc("electric_katana_blue_item_full"), "inventory");
     private static final ModelResourceLocation HANDLE_MODEL =
@@ -27,6 +28,7 @@ public class ElectricKatanaItem extends AbstractKatanaItem {
             new ModelResourceLocation(ChangedAddonMod.resourceLoc("electric_katana_blue_laser"), "inventory");
     private static final ModelResourceLocation EMISSIVE_GUI_MODEL =
             new ModelResourceLocation(ChangedAddonMod.resourceLoc("electric_katana_red_glow"), "inventory");
+
     public ElectricKatanaItem() {
         super(new Tier() {
             public int getUses() {
@@ -50,7 +52,7 @@ public class ElectricKatanaItem extends AbstractKatanaItem {
             }
 
             public @NotNull Ingredient getRepairIngredient() {
-                return CompoundIngredient.of(Ingredient.of(new ItemStack(ChangedAddonItems.ELECTRIC_KATANA.get())), Ingredient.of(ItemTags.create(new ResourceLocation("changed_addon:tsc_katana_repair"))));
+                return CompoundIngredient.of(Ingredient.of(new ItemStack(ChangedAddonItems.ELECTRIC_KATANA.get())), Ingredient.of(ItemTags.create(ResourceLocation.parse("changed_addon:tsc_katana_repair"))));
             }
         }, 3, -2.3f, new Item.Properties().tab(CreativeModeTab.TAB_COMBAT));
     }

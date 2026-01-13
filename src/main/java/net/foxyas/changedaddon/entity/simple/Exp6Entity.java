@@ -84,14 +84,14 @@ public class Exp6Entity extends AbstractCanTameSnepChangedEntity {
                 if (!player.getAbilities().instabuild) {
                     itemstack.shrink(1);
                 }
-                boolean istransfur = ProcessTransfur.isPlayerTransfurred(player);
+                boolean isTransfur = ProcessTransfur.isPlayerTransfurred(player);
 
-                if (!istransfur && this.random.nextInt(2) == 0) { // One in 2 chance
+                if (!isTransfur && this.random.nextInt(2) == 0) { // One in 2 chance
                     this.tame(player);
                     this.navigation.stop();
                     this.setTarget(null);
                     this.level.broadcastEntityEvent(this, (byte) 7);
-                } else if (istransfur && this.random.nextInt(12) == 0) { //One in 12
+                } else if (isTransfur && this.random.nextInt(12) == 0) { //One in 12
                     this.tame(player);
                     this.navigation.stop();
                     this.setTarget(null);
@@ -108,7 +108,7 @@ public class Exp6Entity extends AbstractCanTameSnepChangedEntity {
     }
 
     @Override
-    protected @NotNull InteractionResult mobInteract(Player player, InteractionHand hand) {
+    protected @NotNull InteractionResult mobInteract(Player player, @NotNull InteractionHand hand) {
         return Exp2(player, hand, this.getUnderlyingPlayer());
     }
 
@@ -196,11 +196,11 @@ public class Exp6Entity extends AbstractCanTameSnepChangedEntity {
 
     @Override
     public @NotNull SoundEvent getHurtSound(@NotNull DamageSource ds) {
-        return ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("entity.generic.hurt"));
+        return ForgeRegistries.SOUND_EVENTS.getValue(ResourceLocation.parse("entity.generic.hurt"));
     }
 
     @Override
     public @NotNull SoundEvent getDeathSound() {
-        return ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("entity.generic.death"));
+        return ForgeRegistries.SOUND_EVENTS.getValue(ResourceLocation.parse("entity.generic.death"));
     }
 }

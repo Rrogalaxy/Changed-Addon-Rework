@@ -1,7 +1,7 @@
 package net.foxyas.changedaddon.entity.customHandle;
 
-import net.foxyas.changedaddon.effect.particles.ChangedAddonParticles;
 import net.foxyas.changedaddon.entity.bosses.Experiment009BossEntity;
+import net.foxyas.changedaddon.init.ChangedAddonParticleTypes;
 import net.foxyas.changedaddon.util.DelayedTask;
 import net.foxyas.changedaddon.util.ParticlesUtil;
 import net.foxyas.changedaddon.util.PlayerUtil;
@@ -152,7 +152,7 @@ public class Exp9AttacksHandle {
                 Vec3 spawnPos = this.boss.getEyePosition().add(posDifference.scale(ratio));
                 ParticlesUtil.sendParticles(
                         this.boss.getLevel(),
-                        ChangedAddonParticles.thunderSpark(1),
+                        ChangedAddonParticleTypes.thunderSpark(1),
                         spawnPos,
                         0.25f, 0.25f, 0.25f,
                         5, // quantidade por ponto
@@ -380,7 +380,7 @@ public class Exp9AttacksHandle {
                 Vec3 spawnPos = this.boss.getEyePosition().add(posDifference.scale(ratio));
                 ParticlesUtil.sendParticles(
                         this.boss.getLevel(),
-                        ChangedAddonParticles.thunderSpark(1),
+                        ChangedAddonParticleTypes.thunderSpark(1),
                         spawnPos,
                         0.25f, 0.25f, 0.25f,
                         5, // quantidade por ponto
@@ -430,7 +430,7 @@ public class Exp9AttacksHandle {
 
         public void run() {
             thunderWave();
-             // Reseta a AI
+            // Reseta a AI
         }
 
         public LivingEntity getTarget() {
@@ -483,7 +483,7 @@ public class Exp9AttacksHandle {
 
         public void run() {
             thunderSpeed();
-             // Reseta a AI
+            // Reseta a AI
         }
 
         private void thunderSpeed() {
@@ -531,7 +531,7 @@ public class Exp9AttacksHandle {
 
         public void run() {
             thunderShock();
-             // Reseta a AI
+            // Reseta a AI
         }
 
         private void thunderShock() {
@@ -575,7 +575,7 @@ public class Exp9AttacksHandle {
 
                 }
 
-                EntityHitResult hitResult = PlayerUtil.getEntityHitLookingAt(this.boss, 10, true);
+                EntityHitResult hitResult = PlayerUtil.getEntityHitLookingAt(this.boss, 10, ClipContext.Block.OUTLINE);
 
                 // Verifique o resultado do hit
                 if (hitResult != null && hitResult.getType() != HitResult.Type.MISS) {
@@ -681,7 +681,7 @@ public class Exp9AttacksHandle {
                 }
                 return distance <= 6;
             }
-            return false;
+            return boss.getLevel().random.nextFloat() >= 0.6f;
         }
 
 

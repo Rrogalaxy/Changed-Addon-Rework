@@ -1,12 +1,18 @@
 package net.foxyas.changedaddon.datagen;
 
 import net.foxyas.changedaddon.block.LuminarCrystalSmallBlock;
+import net.foxyas.changedaddon.block.MultifaceBlock;
+import net.foxyas.changedaddon.block.StackableCanBlock;
+import net.foxyas.changedaddon.init.ChangedAddonBlocks;
 import net.foxyas.changedaddon.init.ChangedAddonItems;
 import net.minecraft.advancements.critereon.*;
+import net.minecraft.core.Direction;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LiquidBlock;
+import net.minecraft.world.level.block.PipeBlock;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -19,6 +25,7 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemBlockStatePrope
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.level.storage.loot.predicates.LootItemEntityPropertyCondition;
 import net.minecraft.world.level.storage.loot.predicates.MatchTool;
+import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.NotNull;
@@ -49,8 +56,9 @@ public class BlockLoot extends net.minecraft.data.loot.BlockLoot {
         dropSelf(DARK_LATEX_PUDDLE.get());
         dropSelf(SIGNAL_BLOCK.get());
         dropSelf(INFORMANT_BLOCK.get());
-        dropSelf(SNEP_PLUSH.get());
-        dropSelf(WOLF_PLUSH.get());
+        dropSelf(SNEP_PLUSHY.get());
+        dropSelf(WOLF_PLUSHY.get());
+        dropSelf(DARK_LATEX_WOLF_PLUSHY.get());
         dropSelf(CONTAINMENT_CONTAINER.get());
         dropSelf(REINFORCED_WALL.get());
         dropSelf(REINFORCED_WALL_SILVER_STRIPED.get());
@@ -58,6 +66,7 @@ public class BlockLoot extends net.minecraft.data.loot.BlockLoot {
         dropSelf(REINFORCED_WALL_CAUTION.get());
         dropSelf(REINFORCED_CROSS_BLOCK.get());
         dropSelf(WALL_WHITE_CRACKED.get());
+        dropPottedContents(ChangedAddonBlocks.POTTED_LUMINARA_BLOOM.get());
 
         add(LUMINAR_CRYSTAL_BLOCK.get(), createSilkTouchDispatchTable(LUMINAR_CRYSTAL_BLOCK.get(), LootItem.lootTableItem(ChangedAddonItems.LUMINAR_CRYSTAL_SHARD.get())
                 .apply(ApplyExplosionDecay.explosionDecay())
@@ -93,14 +102,43 @@ public class BlockLoot extends net.minecraft.data.loot.BlockLoot {
         );
 
         dropSelf(GENERATOR.get());
-        dropOther(FOXTA_CAN.get(), ChangedAddonItems.FOXTA.get());
-        dropOther(SNEPSI_CAN.get(), ChangedAddonItems.SNEPSI.get());
+        dropStackableCan(FOXTA_CAN, ChangedAddonItems.FOXTA);
+        dropStackableCan(SNEPSI_CAN, ChangedAddonItems.SNEPSI);
         dropSelf(HAND_SCANNER.get());
         dropSelf(PAWS_SCANNER.get());
 
         dropSelf(LUMINARA_BLOOM.get());
 
         add(WOLF_CRYSTAL_PILLAR.get(), createSilkTouchOnlyTable(WOLF_CRYSTAL_PILLAR.get()));
+
+        coverBlockDrop(COVER_BLOCK.get());
+        coverBlockDrop(DARK_LATEX_COVER_BLOCK.get());
+        coverBlockDrop(WHITE_LATEX_COVER_BLOCK.get());
+    }
+
+    private void dropStackableCan(RegistryObject<? extends StackableCanBlock> canBlock, RegistryObject<? extends Item> canItem) {
+        StackableCanBlock block = canBlock.get();
+        LootTable.Builder table = LootTable.lootTable();
+        LootPool.Builder pool = LootPool.lootPool();
+        for (int i = 1; i < 5; i++) {
+            pool.add(LootItem.lootTableItem(canItem.get()).apply(SetItemCountFunction.setCount(ConstantValue.exactly(i))
+                    .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(block)
+                            .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(StackableCanBlock.CANS, i)))));
+        }
+
+        table.withPool(pool);
+        add(block, table);
+    }
+
+    private void coverBlockDrop(MultifaceBlock cover){
+        LootTable.Builder table = LootTable.lootTable();
+        for(Direction direction : Direction.values()){
+            table.withPool(LootPool.lootPool().add(LootItem.lootTableItem(cover))
+                    .when(LootItemBlockStatePropertyCondition.hasBlockStateProperties(cover)
+                            .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(PipeBlock.PROPERTY_BY_DIRECTION.get(direction), true))));
+        }
+
+        add(cover, table);
     }
 
     @Override

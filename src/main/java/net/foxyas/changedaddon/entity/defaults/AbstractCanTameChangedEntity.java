@@ -29,7 +29,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameRules;
@@ -122,9 +121,9 @@ public abstract class AbstractCanTameChangedEntity extends AbstractBasicChangedE
         tag.putBoolean("FollowOwner", this.isFollowingOwner());
     }
 
-    @Override
+     @Override
     protected boolean targetSelectorTest(LivingEntity livingEntity) {
-        return livingEntity != this.getOwner();
+        return super.targetSelectorTest(livingEntity) && livingEntity != this.getOwner();
     }
 
     @Nullable
@@ -193,7 +192,6 @@ public abstract class AbstractCanTameChangedEntity extends AbstractBasicChangedE
     @Override
     protected @NotNull InteractionResult mobInteract(Player player, @NotNull InteractionHand hand) {
         ItemStack itemstack = player.getItemInHand(hand);
-        Item item = itemstack.getItem();
         if (this.level.isClientSide) {
             boolean flag = this.isOwnedBy(player) || this.isTame();
             return flag ? InteractionResult.CONSUME : InteractionResult.PASS;
@@ -319,7 +317,7 @@ public abstract class AbstractCanTameChangedEntity extends AbstractBasicChangedE
                 || stack.is(Items.COOKED_COD)
                 || stack.is(Items.SALMON)
                 || stack.is(Items.COOKED_SALMON)
-                || stack.is(ItemTags.create(new ResourceLocation(tameType.Tag)));
+                || stack.is(ItemTags.create(ResourceLocation.parse(tameType.Tag)));
     }
 
     //Default Use Type

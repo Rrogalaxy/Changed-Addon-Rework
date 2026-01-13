@@ -14,13 +14,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Random;
 
 public class OrangeWolfCrystalBlockBlock extends AbstractWolfCrystalExtender.AbstractWolfCrystalBlock {
+
     public OrangeWolfCrystalBlockBlock() {
         super();
     }
 
-
     @Override
-    public boolean canSustainPlant(BlockState state, BlockGetter world, BlockPos pos, Direction facing, net.minecraftforge.common.IPlantable plantable) {
+    public boolean canSustainPlant(@NotNull BlockState state, @NotNull BlockGetter world, BlockPos pos, @NotNull Direction facing, net.minecraftforge.common.IPlantable plantable) {
 
         BlockState plant = plantable.getPlant(world, pos.relative(facing));
         if (plant.getBlock() instanceof OrangeWolfCrystalSmallBlock)

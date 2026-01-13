@@ -1,5 +1,7 @@
 package net.foxyas.changedaddon.datagen;
 
+import net.foxyas.changedaddon.datagen.lang.ENLanguageProvider;
+import net.foxyas.changedaddon.datagen.lang.HULanguageProvider;
 import net.minecraft.data.DataGenerator;
 import net.minecraftforge.common.data.ExistingFileHelper;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -28,6 +30,10 @@ public class GatherData {
         generator.addProvider(new LootTableProvider(generator));
 
         generator.addProvider(new BlockStateProvider(generator, helper));
-        //generator.addProvider(new AdvancementProvider(generator, helper));
+        generator.addProvider(new ItemModelProvider(generator, helper));
+        generator.addProvider(new AdvancementProvider(generator, helper));
+
+        generator.addProvider(new ENLanguageProvider(generator));
+        generator.addProvider(new HULanguageProvider(generator));
     }
 }

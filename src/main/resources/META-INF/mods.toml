@@ -4,14 +4,14 @@ license="MIT License"
 
 [[mods]]
 modId="changed_addon"
-version="2.6.6"
+version="2.7.2"
 displayName="Changed Addon Plus"
-credits="LTXProgrammer for Changed mod"
+credits="0senia0 (Helper Dev)\nLTXProgrammer (Main Mod Dev)\n Donators : Nazaeura, Axivorn, BlockyBreaker9001, BRUH, Deathswordd, LostyBoy, Dawn The Shark, Márk Fazekas, fengqi, The_Snowwy_Snom Nom, Memenius, breadikals, Rosa Garcia Lobos, justin colburn"
 displayURL="https://www.curseforge.com/minecraft/mc-mods/changed-addon-plus/"
 updateJSONURL="https://raw.githubusercontent.com/Foxyas/check-mods-update/main/Changed-Addon-Update-Check"
 logoFile="logo.png"
-authors="Foxyas"
-description="this is a remastered version of my mod addon hope you like it If you want to help me by donating some money this is my patreon https://www.patreon.com/Changedaddonplus "
+authors="Foxyas (Main Dev) \n 0senia0 (Helper Dev)"
+description="this is a remastered version of my mod addon hope you like it! \n If you want to help me by donating some money this is my patreon https://www.patreon.com/Changedaddonplus"
 
 [[dependencies.changed_addon]]
     modId="minecraft"
@@ -20,12 +20,19 @@ description="this is a remastered version of my mod addon hope you like it If yo
     ordering="NONE"
     side="BOTH"
 
+[[dependencies.changed_addon]]
+    modId="forge"
+    mandatory=true
+    versionRange="[40.3.0,)"
+    ordering="NONE"
+    side="BOTH"
+
 
 [[dependencies.changed_addon]]
     modId="changed"
     mandatory=true
     versionRange="[0.14.1,)"
-    ordering="NONE"
+    ordering="AFTER"
     side="BOTH"
 
 [[dependencies.changed_addon]]

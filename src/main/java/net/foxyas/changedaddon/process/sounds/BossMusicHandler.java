@@ -1,6 +1,6 @@
 package net.foxyas.changedaddon.process.sounds;
 
-import net.foxyas.changedaddon.entity.interfaces.IHasBossMusic;
+import net.foxyas.changedaddon.entity.api.IHasBossMusic;
 import net.ltxprogrammer.changed.entity.ChangedEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -75,6 +75,8 @@ public class BossMusicHandler {
         if (event == null) return;
 
         FadingBossMusicSound sound = new FadingBossMusicSound(event, boss.getSelf());
+        sound.setPitch(boss.getMusicPitch());
+        sound.setVolume(boss.getMusicVolume());
         mc.getSoundManager().play(sound);
         activeBosses.put(boss, sound);
     }

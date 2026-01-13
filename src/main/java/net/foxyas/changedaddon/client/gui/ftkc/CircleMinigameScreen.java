@@ -5,12 +5,13 @@ import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.foxyas.changedaddon.ChangedAddonMod;
-import net.foxyas.changedaddon.network.ChangedAddonModVariables;
+import net.foxyas.changedaddon.network.ChangedAddonVariables;
 import net.foxyas.changedaddon.qte.FightToKeepConsciousness;
 import net.foxyas.changedaddon.util.RenderUtil;
 import net.foxyas.changedaddon.util.Vector2f;
 import net.ltxprogrammer.changed.entity.variant.TransfurVariantInstance;
 import net.ltxprogrammer.changed.process.ProcessTransfur;
+import net.ltxprogrammer.changed.util.Color3;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -70,7 +71,15 @@ public abstract class CircleMinigameScreen extends Screen {
 
     protected void drawCircles(PoseStack stack) {
         RenderSystem.setShaderTexture(0, CIRCLE_SLOT);
+
+        TransfurVariantInstance<?> var = ProcessTransfur.getPlayerTransfurVariant(player);
+        if(var != null) {
+            Color3 color = var.getTransfurColor();
+            RenderSystem.setShaderColor(1 - color.red(), 1 - color.green(), 1 - color.blue(), 1);
+        } else RenderSystem.setShaderColor(0, 0, 0, 0);
+
         blit(stack, (int) circle.x - 9, (int) circle.y - 9, 0, 0, 19, 19, 19, 19);
+        RenderSystem.setShaderColor(1, 1, 1, 1);
 
         RenderSystem.setShaderTexture(0, CIRCLE_CURSOR);
         blit(stack, (int) cursor.x - 9, (int) cursor.y - 9, 0, 0, 19, 19, 19, 19);
@@ -89,7 +98,7 @@ public abstract class CircleMinigameScreen extends Screen {
             return;
         }
 
-        float fightProgress = ChangedAddonModVariables.PlayerVariables.nonNullOf(player).consciousnessFightProgress / FightToKeepConsciousness.STRUGGLE_NEED;
+        float fightProgress = ChangedAddonVariables.nonNullOf(player).consciousnessFightProgress / FightToKeepConsciousness.STRUGGLE_NEED;
         float loseProgress = Mth.lerp(partialTick, Math.max(0, tf.ageAsVariant - 1), tf.ageAsVariant) / FightToKeepConsciousness.STRUGGLE_TIME;
 
         int alpha = (int) (128 + 128 * (loseProgress - fightProgress));
@@ -99,7 +108,7 @@ public abstract class CircleMinigameScreen extends Screen {
 
     @Override
     public void tick() {
-        if (ChangedAddonModVariables.PlayerVariables.ofOrDefault(player).FTKCminigameType == null) {
+        if (ChangedAddonVariables.ofOrDefault(player).FTKCminigameType == null) {
             minecraft.setScreen(null);
             return;
         }

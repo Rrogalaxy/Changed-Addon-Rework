@@ -1,20 +1,30 @@
 package net.foxyas.changedaddon.command;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.FloatArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.foxyas.changedaddon.ChangedAddonMod;
-import net.foxyas.changedaddon.abilities.DodgeAbilityInstance;
+import net.foxyas.changedaddon.ability.DodgeAbilityInstance;
+import net.foxyas.changedaddon.entity.api.IAlphaAbleEntity;
 import net.foxyas.changedaddon.init.ChangedAddonAbilities;
-import net.foxyas.changedaddon.network.ChangedAddonModVariables;
+import net.foxyas.changedaddon.network.ChangedAddonVariables;
+import net.foxyas.changedaddon.util.ComponentUtil;
 import net.ltxprogrammer.changed.block.AbstractLatexBlock;
+import net.ltxprogrammer.changed.data.AccessorySlots;
 import net.ltxprogrammer.changed.entity.ChangedEntity;
 import net.ltxprogrammer.changed.entity.LatexType;
+import net.ltxprogrammer.changed.entity.variant.TransfurVariant;
+import net.ltxprogrammer.changed.entity.variant.TransfurVariantInstance;
 import net.ltxprogrammer.changed.init.ChangedAttributes;
+import net.ltxprogrammer.changed.init.ChangedRegistry;
 import net.ltxprogrammer.changed.process.ProcessTransfur;
+import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -24,40 +34,92 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentUtils;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistryEntry;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
-@Mod.EventBusSubscriber
 public class ChangedAddonAdminCommand {
 
-    @SubscribeEvent
-    public static void registerCommand(RegisterCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("changed-addon-admin")
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        LiteralCommandNode<CommandSourceStack> mainCommand = dispatcher.register(Commands.literal("changed-addon-admin")
                 .requires(s -> s.hasPermission(Commands.LEVEL_GAMEMASTERS))
-                .then(Commands.literal("setUltraInstinctDodge")
+                .then(Commands.literal("alphaGene")
+                        .then(Commands.literal("setEntityAlphaGene")
+                                .then(Commands.argument("targets", EntityArgument.entities())
+                                        .then(Commands.argument("value", BoolArgumentType.bool())
+                                                .executes(ChangedAddonAdminCommand::setEntityAlphaGene)
+                                        )
+                                )
+                        )
+                        .then(Commands.literal("getEntityAlphaGene")
+                                .then(Commands.argument("target", EntityArgument.entity())
+                                        .executes(ChangedAddonAdminCommand::getEntityAlphaGene)
+                                )
+                        )
+                        .then(Commands.literal("setEntityAlphaGeneScale")
+                                .then(Commands.argument("targets", EntityArgument.entities())
+                                        .then(Commands.argument("scale", FloatArgumentType.floatArg(-1, 30))
+                                                .executes(ChangedAddonAdminCommand::setEntityAlphaGeneScale)
+                                        )
+                                )
+                        )
+                        .then(Commands.literal("getEntityAlphaGeneScale")
+                                .then(Commands.argument("target", EntityArgument.entity())
+                                        .executes(ChangedAddonAdminCommand::getEntityAlphaGeneScale)
+                                )
+                        )
+                ).then(Commands.literal("setUltraInstinctDodge")
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .then(Commands.argument("value", BoolArgumentType.bool())
                                         .executes(ChangedAddonAdminCommand::setUltraInstinctDodge)
                                 )
                         )
                 )
+                .then(Commands.literal("showTransfursSlots")
+                        .then(Commands.argument("NamespaceFormId", StringArgumentType.greedyString())
+                                .suggests((context, builder) -> {
+                                    String namespaceFormId = StringArgumentType.getString(context, "NamespaceFormId").toLowerCase();
+                                    ArrayList<ResourceLocation> list = TransfurVariant.getPublicTransfurVariants().map(ForgeRegistryEntry::getRegistryName).filter(Objects::nonNull).collect(Collectors.toCollection(ArrayList::new));
+                                    list.add(TransfurVariant.SPECIAL_LATEX);
+                                    TreeSet<String> set = list.stream().map(ResourceLocation::getNamespace).collect(Collectors.toCollection(TreeSet::new));
+                                    if (namespaceFormId.isBlank()) {
+                                        list.stream().map(ResourceLocation::toString).toList().forEach(builder::suggest);
+                                    } else if (namespaceFormId.startsWith("$")) {
+                                        set.forEach(builder::suggest);
+                                    } else {
+                                        list.stream().map(ResourceLocation::toString).toList().forEach(builder::suggest);
+                                    }
+
+                                    return builder.buildFuture();
+                                })
+                                .then(Commands.argument("FilterWithSlots", StringArgumentType.string())
+                                        .suggests((context, builder) -> {
+                                            List<String> suggestions = List.of("\"\"", "no_slots", "none_slots", "with_slots");
+                                            suggestions.forEach(builder::suggest);
+                                            return builder.buildFuture();
+                                        })
+                                        .executes(ChangedAddonAdminCommand::showTransfursSlots)
+                                )
+                                .executes(ChangedAddonAdminCommand::showTransfursSlots)
+                        )
+                )
                 .then(Commands.literal("allow_boss_transfur")
-                        .then(Commands.literal("Ket_Exp_009")
+                        .then(Commands.literal("Exp9")
                                 .then(Commands.literal("get")
                                         .then(Commands.argument("player", EntityArgument.player())
                                                 .executes(arguments -> {
                                                     Player target = EntityArgument.getPlayer(arguments, "player");
 
-                                                    ChangedAddonModVariables.PlayerVariables vars = target.getCapability(ChangedAddonModVariables.PLAYER_VARIABLES_CAPABILITY).resolve().orElse(null);
+                                                    ChangedAddonVariables.PlayerVariables vars = target.getCapability(ChangedAddonVariables.PLAYER_VARIABLES_CAPABILITY).resolve().orElse(null);
                                                     if (vars == null) return 0;
 
                                                     arguments.getSource().sendSuccess(new TextComponent(target.getDisplayName().getString() + (vars.Exp009TransfurAllowed ? " has Exp009Transfur permission" : " has no Exp009Transfur permission")), false);
@@ -74,7 +136,7 @@ public class ChangedAddonAdminCommand {
 
                                                             arguments.getSource().sendSuccess(new TextComponent(("The Exp009Transfur Perm of the " + target.getDisplayName().getString() + " was set to " + val)), true);
 
-                                                            target.getCapability(ChangedAddonModVariables.PLAYER_VARIABLES_CAPABILITY).ifPresent(capability -> {
+                                                            target.getCapability(ChangedAddonVariables.PLAYER_VARIABLES_CAPABILITY).ifPresent(capability -> {
                                                                 capability.Exp009TransfurAllowed = val;
                                                                 capability.syncPlayerVariables(target);
                                                             });
@@ -85,13 +147,13 @@ public class ChangedAddonAdminCommand {
                                         )
                                 )
                         )
-                        .then(Commands.literal("Exp_10")
+                        .then(Commands.literal("Exp10")
                                 .then(Commands.literal("get")
                                         .then(Commands.argument("player", EntityArgument.player())
                                                 .executes(arguments -> {
                                                     Player target = EntityArgument.getPlayer(arguments, "player");
 
-                                                    ChangedAddonModVariables.PlayerVariables vars = target.getCapability(ChangedAddonModVariables.PLAYER_VARIABLES_CAPABILITY).resolve().orElse(null);
+                                                    ChangedAddonVariables.PlayerVariables vars = target.getCapability(ChangedAddonVariables.PLAYER_VARIABLES_CAPABILITY).resolve().orElse(null);
                                                     if (vars == null) return 0;
 
                                                     arguments.getSource().sendSuccess(new TextComponent(target.getDisplayName().getString() + (vars.Exp10TransfurAllowed ? " has Exp10Transfur permission" : " has no Exp10Transfur permission")), false);
@@ -108,7 +170,7 @@ public class ChangedAddonAdminCommand {
 
                                                             arguments.getSource().sendSuccess(new TextComponent(("The Exp10Transfur Perm of the " + target.getDisplayName().getString() + " was set to " + val)), true);
 
-                                                            target.getCapability(ChangedAddonModVariables.PLAYER_VARIABLES_CAPABILITY).ifPresent(capability -> {
+                                                            target.getCapability(ChangedAddonVariables.PLAYER_VARIABLES_CAPABILITY).ifPresent(capability -> {
                                                                 capability.Exp10TransfurAllowed = val;
                                                                 capability.syncPlayerVariables(target);
                                                             });
@@ -120,38 +182,38 @@ public class ChangedAddonAdminCommand {
                                 )
                         )
                 )
-                .then(Commands.literal("SetTransfurProgress")//Add/set progress self
+                .then(Commands.literal("setTransfurProgress")//Add/set progress self
                         .requires(stack -> stack.getEntity() instanceof Player)
-                        .then(Commands.argument("Number", DoubleArgumentType.doubleArg())
+                        .then(Commands.argument("value", FloatArgumentType.floatArg())
                                 .then(Commands.literal("add")
                                         .executes(arguments ->
-                                                setTFProgress(arguments.getSource().getPlayerOrException(), FloatArgumentType.getFloat(arguments, "Number"), true))
+                                                setTFProgress(arguments.getSource().getPlayerOrException(), FloatArgumentType.getFloat(arguments, "value"), true))
                                 )
                                 .then(Commands.literal("set")
                                         .executes(arguments ->
-                                                setTFProgress(arguments.getSource().getPlayerOrException(), FloatArgumentType.getFloat(arguments, "Number"), false))
+                                                setTFProgress(arguments.getSource().getPlayerOrException(), FloatArgumentType.getFloat(arguments, "value"), false))
                                 )
                         )
                 )
-                .then(Commands.literal("SetPlayerTransfurProgress")//Add/set progress other
-                        .then(Commands.argument("Target", EntityArgument.player())
-                                .then(Commands.argument("Number", FloatArgumentType.floatArg())
+                .then(Commands.literal("setPlayerTransfurProgress")//Add/set progress other
+                        .then(Commands.argument("target", EntityArgument.player())
+                                .then(Commands.argument("value", FloatArgumentType.floatArg())
                                         .then(Commands.literal("add")
                                                 .executes(arguments ->
-                                                        setTFProgress(EntityArgument.getPlayer(arguments, "Target"), FloatArgumentType.getFloat(arguments, "Number"), true))
+                                                        setTFProgress(EntityArgument.getPlayer(arguments, "target"), FloatArgumentType.getFloat(arguments, "value"), true))
                                         )
                                         .then(Commands.literal("set")
                                                 .executes(arguments ->
-                                                        setTFProgress(EntityArgument.getPlayer(arguments, "Target"), FloatArgumentType.getFloat(arguments, "Number"), false))
+                                                        setTFProgress(EntityArgument.getPlayer(arguments, "target"), FloatArgumentType.getFloat(arguments, "value"), false))
                                         )
                                 )
                         )
                 )
-                .then(Commands.literal("SetMaxTransfurTolerance")//Set tf tolerance other
+                .then(Commands.literal("setPlayerMaxTransfurTolerance")//Set tf tolerance other
                         .then(Commands.argument("target", EntityArgument.player())
-                                .then(Commands.argument("Number", FloatArgumentType.floatArg(.1f))
+                                .then(Commands.argument("value", FloatArgumentType.floatArg(.1f))
                                         .executes(arguments ->
-                                                setTFTolerance(EntityArgument.getPlayer(arguments, "target"), FloatArgumentType.getFloat(arguments, "Number")))
+                                                setTFTolerance(EntityArgument.getPlayer(arguments, "target"), FloatArgumentType.getFloat(arguments, "value")))
                                 )
                                 .then(Commands.literal("Default")
                                         .executes(arguments ->
@@ -159,7 +221,7 @@ public class ChangedAddonAdminCommand {
                                 )
                         )
                 )
-                .then(Commands.literal("GetMaxTransfurTolerance")//Get tf tolerance self
+                .then(Commands.literal("getMaxTransfurTolerance")//Get tf tolerance self
                         .requires(stack -> stack.getEntity() instanceof Player)
                         .executes(arguments -> {
                             ServerPlayer player = arguments.getSource().getPlayerOrException();
@@ -182,6 +244,10 @@ public class ChangedAddonAdminCommand {
                         )
                 )
         );
+
+        dispatcher.register(Commands.literal("alphaGeneHandle")
+                .requires(s -> s.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                .redirect(mainCommand.getChild("alphaGene")));
     }
 
     private static int setTFProgress(Player player, float amount, boolean add) {
@@ -200,6 +266,132 @@ public class ChangedAddonAdminCommand {
         ChangedAddonMod.LOGGER.info("Transfur Tolerance of {} has been set to {}", player.getDisplayName().getString(), amount);
 
         return Command.SINGLE_SUCCESS;
+    }
+
+    private static int setEntityAlphaGene(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        Collection<? extends Entity> entities = EntityArgument.getEntities(context, "targets");
+        boolean value = BoolArgumentType.getBool(context, "value");
+
+        int affected = 0;
+
+        for (Entity entity : entities) {
+            entity = resolveChangedEntity(entity);
+            if (entity instanceof IAlphaAbleEntity alpha) {
+                alpha.setAlpha(value);
+                affected++;
+            }
+        }
+
+        if (affected > 0) {
+            context.getSource().sendSuccess(
+                    new TranslatableComponent(
+                            "commands.changed_addon.alpha.set.success",
+                            value,
+                            affected
+                    ),
+                    true
+            );
+            return affected;
+        }
+
+        context.getSource().sendFailure(
+                new TranslatableComponent("commands.changed_addon.alpha.set.fail")
+        );
+        return 0;
+    }
+
+
+    private static int getEntityAlphaGene(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        Entity entity = EntityArgument.getEntity(context, "target");
+        entity = resolveChangedEntity(entity);
+
+        if (entity instanceof IAlphaAbleEntity alpha) {
+            boolean value = alpha.isAlpha();
+
+            context.getSource().sendSuccess(
+                    new TranslatableComponent(
+                            "commands.changed_addon.alpha.get.success",
+                            value
+                    ),
+                    false
+            );
+
+            return value ? 1 : 0;
+        }
+
+        context.getSource().sendFailure(
+                new TranslatableComponent("commands.changed_addon.alpha.get.fail")
+        );
+        return 0;
+    }
+
+
+    private static int setEntityAlphaGeneScale(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        Collection<? extends Entity> entities = EntityArgument.getEntities(context, "targets");
+        float value = FloatArgumentType.getFloat(context, "scale");
+
+        int affected = 0;
+
+        for (Entity entity : entities) {
+            entity = resolveChangedEntity(entity);
+            if (entity instanceof IAlphaAbleEntity alpha) {
+                alpha.setAlphaScale(value);
+                affected++;
+            }
+        }
+
+        if (affected > 0) {
+            context.getSource().sendSuccess(
+                    new TranslatableComponent(
+                            "commands.changed_addon.alpha_scale.set.success",
+                            value,
+                            affected
+                    ),
+                    true
+            );
+            return affected;
+        }
+
+        context.getSource().sendFailure(
+                new TranslatableComponent("commands.changed_addon.alpha.set.fail")
+        );
+        return 0;
+    }
+
+
+    private static int getEntityAlphaGeneScale(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        Entity entity = EntityArgument.getEntity(context, "target");
+        entity = resolveChangedEntity(entity);
+
+        if (entity instanceof IAlphaAbleEntity alpha) {
+            float value = alpha.alphaAdditionalScale();
+
+            context.getSource().sendSuccess(
+                    new TranslatableComponent(
+                            "commands.changed_addon.alpha_scale.get.success",
+                            value
+                    ),
+                    false
+            );
+
+            return (int) value;
+        }
+
+        context.getSource().sendFailure(
+                new TranslatableComponent("commands.changed_addon.alpha.get.fail")
+        );
+        return 0;
+    }
+
+
+    private static Entity resolveChangedEntity(Entity entity) {
+        if (entity instanceof Player player) {
+            TransfurVariantInstance<?> transfur = ProcessTransfur.getPlayerTransfurVariant(player);
+            if (transfur != null) {
+                return transfur.getChangedEntity();
+            }
+        }
+        return entity;
     }
 
     private static int setBlockInfection(CommandContext<CommandSourceStack> ctx, LatexType enumValue) {
@@ -237,7 +429,7 @@ public class ChangedAddonAdminCommand {
 
     private static int setUltraInstinctDodge(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         CommandSourceStack source = context.getSource();
-        var entitiesList = EntityArgument.getEntities(context, "targets");
+        Collection<? extends Entity> entitiesList = EntityArgument.getEntities(context, "targets");
         boolean value = BoolArgumentType.getBool(context, "value");
 
         List<Component> successMessages = new ArrayList<>();
@@ -249,7 +441,7 @@ public class ChangedAddonAdminCommand {
             if (entity instanceof ChangedEntity changedEntity) {
                 dodgeAbilityInstance = changedEntity.getAbilityInstance(ChangedAddonAbilities.DODGE.get());
             } else if (entity instanceof Player player) {
-                var transfurVariantInstance = ProcessTransfur.getPlayerTransfurVariant(player);
+                TransfurVariantInstance<?> transfurVariantInstance = ProcessTransfur.getPlayerTransfurVariant(player);
                 if (transfurVariantInstance != null) {
                     dodgeAbilityInstance = transfurVariantInstance.getAbilityInstance(ChangedAddonAbilities.DODGE.get());
                 }
@@ -270,6 +462,92 @@ public class ChangedAddonAdminCommand {
         sendCondensedMessage(source, successMessages, true);
         sendCondensedMessage(source, failureMessages, false);
 
+        return 1;
+    }
+
+    private static final int MAX_OUTPUT = 20; // max lines to show
+
+    private static int showTransfursSlots(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        String namespaceFormId = StringArgumentType.getString(context, "NamespaceFormId").toLowerCase().replace("$", "");
+        String filter = "";
+        try {
+            filter = StringArgumentType.getString(context, "FilterWithSlots").toLowerCase();
+        } catch (IllegalArgumentException ignored) {
+        }
+
+        List<String> validFilters = List.of("\"\"", "no_slots", "none_slots", "with_slots");
+        if (!validFilters.contains(filter)) filter = "";
+
+        String namespace = "";
+        String formIdFilter = "";
+
+        String[] parts = namespaceFormId.split(":", 2);
+        if (parts.length > 0) namespace = parts[0];
+        if (parts.length > 1) formIdFilter = parts[1];
+
+        final String finalNamespace = namespace;
+        final String finalFormIdFilter = formIdFilter;
+
+        ServerLevel level = source.getLevel();
+
+        Map<EntityType<?>, TransfurVariant<?>> variantMap = ChangedRegistry.TRANSFUR_VARIANT.get()
+                .getValues().stream()
+                .filter(variant -> finalNamespace.isEmpty() || variant.getFormId().getNamespace().equalsIgnoreCase(finalNamespace))
+                .filter(variant -> finalFormIdFilter.isEmpty() || variant.getFormId().getPath().toLowerCase().contains(finalFormIdFilter))
+                .sorted(Comparator.comparing(variant -> variant.getFormId().toString()))
+                .collect(Collectors.toMap(
+                        TransfurVariant::getEntityType,
+                        variant -> variant,
+                        (a, b) -> a,
+                        LinkedHashMap::new
+                ));
+
+        int count = 0;
+        for (Map.Entry<EntityType<?>, TransfurVariant<?>> entry : variantMap.entrySet()) {
+            if (count >= MAX_OUTPUT) {
+                source.sendSuccess(ComponentUtil.literal("⚠ Data too large for chat, showing only " + MAX_OUTPUT + " entries.").withStyle(ChatFormatting.YELLOW), false);
+                break;
+            }
+
+            EntityType<?> entityType = entry.getKey();
+            TransfurVariant<?> variant = entry.getValue();
+
+            Entity tempEntity = entityType.create(level);
+            if (!(tempEntity instanceof LivingEntity livingEntity)) continue;
+
+            Optional<AccessorySlots> optionalSlots = AccessorySlots.getForEntity(livingEntity);
+
+            Component header = ComponentUtil.literal("EntityType: ")
+                    .append(ComponentUtil.literal(entityType.toShortString()).withStyle(ChatFormatting.AQUA))
+                    .append(ComponentUtil.literal("\nTransfurVariant: "))
+                    .append(ComponentUtil.literal(variant.getFormId().toString()).withStyle(ChatFormatting.GOLD));
+
+            if (optionalSlots.isPresent()) {
+                AccessorySlots slots = optionalSlots.get();
+                List<String> slotNames = slots.getSlotTypes()
+                        .filter(s -> s.getRegistryName() != null)
+                        .map(s -> s.getRegistryName().toString())
+                        .toList();
+
+                if (!slotNames.isEmpty() && (filter.contains("with_slots") || filter.isBlank())) {
+                    Component slotText = ComponentUtil.literal("\nSlots: ")
+                            .append(ComponentUtil.literal(String.join(", ", slotNames)).withStyle(ChatFormatting.GREEN))
+                            .append("\n");
+                    source.sendSuccess(header.copy().append(slotText), false);
+                } else if (slotNames.isEmpty() && (filter.contains("none_slots") || filter.isBlank())) {
+                    Component noSlots = ComponentUtil.literal("\nSlots: None").withStyle(ChatFormatting.DARK_GRAY).append("\n");
+                    source.sendSuccess(header.copy().append(noSlots), false);
+                }
+            } else if (filter.contains("no_slots") || filter.isBlank()) {
+                Component noSlotInfo = ComponentUtil.literal("\nSlots: [No AccessorySlots]").withStyle(ChatFormatting.RED).append("\n---");
+                source.sendSuccess(header.copy().append(noSlotInfo), false);
+            }
+
+            count++;
+        }
+
+        variantMap.clear();
         return 1;
     }
 
@@ -296,5 +574,4 @@ public class ChangedAddonAdminCommand {
                 source.sendFailure(full);
         }
     }
-
 }

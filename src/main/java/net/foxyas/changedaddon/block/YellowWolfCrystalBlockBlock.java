@@ -14,12 +14,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Random;
 
 public class YellowWolfCrystalBlockBlock extends AbstractWolfCrystalExtender.AbstractWolfCrystalBlock {
+
     public YellowWolfCrystalBlockBlock() {
         super();
     }
 
     @Override
-    public boolean canSustainPlant(BlockState state, BlockGetter world, BlockPos pos, Direction facing, net.minecraftforge.common.IPlantable plantable) {
+    public boolean canSustainPlant(@NotNull BlockState state, @NotNull BlockGetter world, BlockPos pos, @NotNull Direction facing, net.minecraftforge.common.IPlantable plantable) {
 
         BlockState plant = plantable.getPlant(world, pos.relative(facing));
         if (plant.getBlock() instanceof YellowWolfCrystalSmallBlock)
@@ -36,5 +37,4 @@ public class YellowWolfCrystalBlockBlock extends AbstractWolfCrystalExtender.Abs
             level.playSound(null, pos, ChangedSounds.ICE2, SoundSource.BLOCKS, 1.0f, 1.0f);
         }
     }
-
 }

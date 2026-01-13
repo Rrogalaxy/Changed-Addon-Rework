@@ -1,6 +1,6 @@
 package net.foxyas.changedaddon.network;
 
-import net.foxyas.changedaddon.network.packets.ServerboundProgressFTKCPacket;
+import net.foxyas.changedaddon.network.packet.ServerboundProgressFTKCPacket;
 import net.foxyas.changedaddon.qte.FightToKeepConsciousness;
 import net.ltxprogrammer.changed.init.ChangedSounds;
 import net.ltxprogrammer.changed.process.ProcessTransfur;
@@ -17,7 +17,7 @@ public class ServerPacketHandler {
         context.enqueueWork(() -> {
             ServerPlayer player = context.getSender();
 
-            ChangedAddonModVariables.PlayerVariables vars = ChangedAddonModVariables.PlayerVariables.ofOrDefault(player);
+            ChangedAddonVariables.PlayerVariables vars = ChangedAddonVariables.ofOrDefault(player);
             if (vars.FTKCminigameType == null) return;
 
             if (!ProcessTransfur.isPlayerTransfurred(player)) {

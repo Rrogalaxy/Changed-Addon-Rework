@@ -1,10 +1,11 @@
 package net.foxyas.changedaddon.entity.defaults;
 
 import net.foxyas.changedaddon.ChangedAddonMod;
-import net.foxyas.changedaddon.abilities.DodgeAbilityInstance;
+import net.foxyas.changedaddon.ability.DodgeAbilityInstance;
 import net.foxyas.changedaddon.block.AbstractLuminarCrystal;
+import net.foxyas.changedaddon.entity.api.ICrawlAbleEntity;
+import net.foxyas.changedaddon.entity.api.IHasBossMusic;
 import net.foxyas.changedaddon.entity.customHandle.BossAbilitiesHandle;
-import net.foxyas.changedaddon.entity.interfaces.CrawlFeature;
 import net.foxyas.changedaddon.init.*;
 import net.foxyas.changedaddon.util.ParticlesUtil;
 import net.ltxprogrammer.changed.ability.IAbstractChangedEntity;
@@ -20,8 +21,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.Difficulty;
@@ -37,11 +40,11 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
@@ -54,7 +57,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
 import java.util.Random;
 
-public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard implements CrawlFeature {
+public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard implements ICrawlAbleEntity, IHasBossMusic {
 
     public static final int GLOW_NONE = 0;
     public static final int GLOW_PULSE = 1;
@@ -77,13 +80,14 @@ public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard imp
     public DodgeAbilityInstance dodgeAbilityInstance = null;
     private boolean isBoss = false;
     private boolean Aggro = false;
+    private boolean attributesApplied = false;
 
     //public int DEVATTACKTESTTICK = 0;
     public AbstractLuminarcticLeopard(EntityType<? extends AbstractSnowLeopard> p_19870_, Level p_19871_) {
         super(p_19870_, p_19871_);
+        this.setAttributes(this.getAttributes());
         this.dodgeAbilityInstance = this.registerAbility((this::canDodge), new DodgeAbilityInstance(ChangedAddonAbilities.DODGE.get(), IAbstractChangedEntity.forEntity(this)));
     }
-
 
     public static <T extends AbstractLuminarcticLeopard> boolean canSpawnNear(EntityType<T> entityType, ServerLevelAccessor world, MobSpawnType reason, BlockPos pos, Random random) {
         if (world.getDifficulty() == Difficulty.PEACEFUL) {
@@ -151,6 +155,21 @@ public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard imp
     }
 
     @Override
+    protected boolean targetSelectorTest(LivingEntity livingEntity) {
+        return this.isAggro() && !(livingEntity instanceof AbstractLuminarcticLeopard);
+    }
+
+    @Override
+    protected @NotNull SoundEvent getHurtSound(@NotNull DamageSource pDamageSource) {
+        return SoundEvents.GENERIC_HURT;
+    }
+
+    @Override
+    protected @NotNull SoundEvent getDeathSound() {
+        return SoundEvents.GENERIC_DEATH;
+    }
+
+    @Override
     protected void defineSynchedData() {
         super.defineSynchedData();
         this.entityData.define(GLOW_STAGE, 0);
@@ -184,13 +203,33 @@ public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard imp
     }
 
     @Override
+    public void variantTick(Level level) {
+        super.variantTick(level);
+
+        if (this.isBoss() && !attributesApplied) {
+            handleBoss();
+        } else if (!this.isBoss() && attributesApplied) {
+            handleNonBoss();
+        }
+    }
+
+    @Override
+    public @Nullable ResourceLocation getBossMusic() {
+        return this.isBoss() ? ChangedAddonSoundEvents.LUMINARCTIC_LEOPARD.get().getLocation() : null;
+    }
+
+    @Override
+    public LivingEntity getSelf() {
+        return this;
+    }
+
+    @Override
     public void baseTick() {
         super.baseTick();
-        if (tickCount < 4) {
-            if (this.isBoss()) {
-                handleBoss();
-            }
+        if (this.isBoss() && !attributesApplied) {
+            handleBoss();
         }
+
         if (this.getUnderlyingPlayer() == null) {
             if (!this.isNoAi()) {
                 if (this.dodgeAbilityInstance != null && this.dodgeAbilityInstance.isDodgeActive()) {
@@ -312,14 +351,19 @@ public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard imp
     @Override
     public SpawnGroupData finalizeSpawn(@NotNull ServerLevelAccessor p_21434_, @NotNull DifficultyInstance p_21435_, @NotNull MobSpawnType p_21436_, @Nullable SpawnGroupData p_21437_, @Nullable CompoundTag p_21438_) {
         if (p_21438_ != null && p_21438_.contains("isBoss") && p_21438_.getBoolean("isBoss")) {
-            handleBoss();
+            if (!attributesApplied) {
+                handleBoss();
+            }
         } else if (this.isBoss()) {
-            handleBoss();
+            if (!attributesApplied) {
+                handleBoss();
+            }
         }
         return super.finalizeSpawn(p_21434_, p_21435_, p_21436_, p_21437_, p_21438_);
     }
 
     public void handleBoss() {
+        attributesApplied = true;
         Objects.requireNonNull(this.getAttribute(Attributes.MAX_HEALTH)).setBaseValue(500f);
         Objects.requireNonNull(this.getAttribute(Attributes.ATTACK_DAMAGE)).setBaseValue(17.5f);
         Objects.requireNonNull(this.getAttribute(Attributes.ARMOR)).setBaseValue(10f);
@@ -327,6 +371,13 @@ public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard imp
         this.setHealth(500f);
         //this.setAbsorptionAmount(75f);
         this.getBasicPlayerInfo().setEyeStyle(EyeStyle.TALL);
+        IAbstractChangedEntity.forEitherSafe(maybeGetUnderlying()).map(IAbstractChangedEntity::getTransfurVariantInstance).ifPresent(TransfurVariantInstance::refreshAttributes);
+    }
+
+    public void handleNonBoss() {
+        attributesApplied = false;
+        this.setAttributes(this.getAttributes());
+        IAbstractChangedEntity.forEitherSafe(maybeGetUnderlying()).map(IAbstractChangedEntity::getTransfurVariantInstance).ifPresent(TransfurVariantInstance::refreshAttributes);
     }
 
     public boolean isDashing() {
@@ -382,7 +433,7 @@ public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard imp
 
         // Dano sem atacante direto ou indireto
         if (attacker == null && this.isBoss()) {
-            if (source == ChangedAddonDamageSources.SOLVENT) {
+            if (source == ChangedAddonDamageSources.LATEX_SOLVENT) {
                 return super.hurt(source, amount * 1.25f);
             } else if (source.getMsgId().contains("latex_solvent")) {
                 return super.hurt(source, amount * 1.25f);
@@ -391,7 +442,7 @@ public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard imp
         }
 
         if (attacker instanceof LivingEntity livingEntity && this.isBoss()) {
-            if (EnchantmentHelper.getItemEnchantmentLevel(ChangedAddonEnchantments.SOLVENT.get(), livingEntity.getMainHandItem()) >= 1) {
+            if (livingEntity.getAttribute(ChangedAddonAttributes.LATEX_SOLVENT_DAMAGE_MULTIPLIER.get()) != null && livingEntity.getAttributeValue(ChangedAddonAttributes.LATEX_SOLVENT_DAMAGE_MULTIPLIER.get()) >= 1) {
                 return super.hurt(source, amount * 1.25f);
             } else if (source.getMsgId().contains("latex_solvent")) {
                 return super.hurt(source, amount * 1.25f);
@@ -429,9 +480,10 @@ public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard imp
                 }
             }
 
+            int pTicksFrozen = target.getTicksFrozen() + (int) (target.getTicksRequiredToFreeze() * 0.25f);
             if (source instanceof AbstractLuminarcticLeopard lumi && lumi.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) {
                 ParticlesUtil.sendParticles(target.level, ParticleTypes.SNOWFLAKE, target.getEyePosition(), 0.3f, 0.5f, 0.3f, 4, 0.05f);
-                target.setTicksFrozen(target.getTicksFrozen() + (int) (target.getTicksRequiredToFreeze() * 0.25f));
+                target.setTicksFrozen(Math.min(target.getTicksRequiredToFreeze(), pTicksFrozen));
                 target.playSound(SoundEvents.PLAYER_HURT_FREEZE, 2f, 1f);
             } else if (source instanceof Player player) {
                 TransfurVariantInstance<?> instance = ProcessTransfur.getPlayerTransfurVariant(player);
@@ -439,7 +491,7 @@ public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard imp
                         && instance != null
                         && instance.getParent().is(ChangedAddonTags.TransfurTypes.CAUSE_FREEZING)) {
                     ParticlesUtil.sendParticles(target.level, ParticleTypes.SNOWFLAKE, target.getEyePosition(), 0.3f, 0.5f, 0.3f, 4, 0.05f);
-                    target.setTicksFrozen(target.getTicksFrozen() + (int) (target.getTicksRequiredToFreeze() * 0.25f));
+                    target.setTicksFrozen(Math.min(target.getTicksRequiredToFreeze(), pTicksFrozen));
                     target.playSound(SoundEvents.PLAYER_HURT_FREEZE, 2f, 1f);
                 }
             }
@@ -467,5 +519,7 @@ public abstract class AbstractLuminarcticLeopard extends AbstractSnowLeopard imp
         }
     }
 
-
+    public static LootTable.@NotNull Builder getLoot() {
+        return LootTable.lootTable();
+    }
 }

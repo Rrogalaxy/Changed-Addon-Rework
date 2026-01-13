@@ -1,15 +1,12 @@
 package net.foxyas.changedaddon.item;
 
 import net.foxyas.changedaddon.init.ChangedAddonMobEffects;
-import net.foxyas.changedaddon.init.ChangedAddonSounds;
+import net.foxyas.changedaddon.init.ChangedAddonSoundEvents;
 import net.foxyas.changedaddon.init.ChangedAddonTabs;
-import net.foxyas.changedaddon.network.ChangedAddonModVariables;
-import net.foxyas.changedaddon.procedures.SummonDripParticlesProcedure;
-import net.foxyas.changedaddon.util.DelayedTask;
+import net.foxyas.changedaddon.network.ChangedAddonVariables;
+import net.foxyas.changedaddon.procedure.SummonDripParticlesProcedure;
 import net.foxyas.changedaddon.util.PlayerUtil;
-import net.ltxprogrammer.changed.init.ChangedItems;
 import net.ltxprogrammer.changed.item.SpecializedAnimations;
-import net.ltxprogrammer.changed.item.Syringe;
 import net.ltxprogrammer.changed.process.ProcessTransfur;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementProgress;
@@ -25,45 +22,22 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
-import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
-
-import javax.annotation.Nullable;
 
 public class LaethinSyringeItem extends AbstractSyringeItem implements SpecializedAnimations {
 
     public LaethinSyringeItem() {
-        super(new Item.Properties().tab(ChangedAddonTabs.TAB_CHANGED_ADDON).stacksTo(64)
+        super(new Item.Properties().tab(ChangedAddonTabs.CHANGED_ADDON_MAIN_TAB).stacksTo(64)
                 .rarity(Rarity.RARE)
         );
     }
 
     @Override
-    public @NotNull UseAnim getUseAnimation(@NotNull ItemStack itemstack) {
-        return UseAnim.NONE;
-    }
-
-    @Override
-    public int getUseDuration(@NotNull ItemStack itemstack) {
-        return super.getUseDuration(itemstack);
-    }
-
-    @Override
-    public @NotNull ItemStack finishUsingItem(@NotNull ItemStack itemstack, @NotNull Level world, @NotNull LivingEntity entity) {
-        applyEffects(world, entity);
-        return onUse(itemstack, ChangedItems.SYRINGE.get().getDefaultInstance(), entity);
-    }
-
-    @Nullable
-    public SpecializedAnimations.AnimationHandler getAnimationHandler() {
-        return new Syringe.SyringeAnimation(this);
-    }
-
-    protected void applyEffects(Level level, LivingEntity entity) {
+    public void applyEffectsAfterUse(@NotNull ItemStack pStack, Level level, LivingEntity entity) {
         if (!(entity instanceof Player player)) return;
 
-        var playerVars = ChangedAddonModVariables.PlayerVariables.ofOrDefault(player);
+        var playerVars = ChangedAddonVariables.ofOrDefault(player);
 
         if (!ProcessTransfur.isPlayerTransfurred(player)) {
             if (playerVars.showWarns && !player.level.isClientSide())
@@ -99,7 +73,7 @@ public class LaethinSyringeItem extends AbstractSyringeItem implements Specializ
         }
 
         // Play sound
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), ChangedAddonSounds.UNTRANSFUR, SoundSource.NEUTRAL, 1, 1);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), ChangedAddonSoundEvents.UNTRANSFUR.get(), SoundSource.NEUTRAL, 1, 1);
     }
 
     protected void applyMobEffect(Player entity, MobEffect effect, int duration) {
@@ -107,7 +81,7 @@ public class LaethinSyringeItem extends AbstractSyringeItem implements Specializ
     }
 
     private void resetAdvancement(ServerPlayer player, String id) {
-        Advancement adv = player.server.getAdvancements().getAdvancement(new ResourceLocation(id));
+        Advancement adv = player.server.getAdvancements().getAdvancement(ResourceLocation.parse(id));
         if (adv == null) return;
 
         AdvancementProgress progress = player.getAdvancements().getOrStartProgress(adv);
@@ -117,7 +91,7 @@ public class LaethinSyringeItem extends AbstractSyringeItem implements Specializ
     }
 
     protected void grantAdvancementIfNotDone(ServerPlayer player, String advancementId) {
-        Advancement advancement = player.server.getAdvancements().getAdvancement(new ResourceLocation(advancementId));
+        Advancement advancement = player.server.getAdvancements().getAdvancement(ResourceLocation.parse(advancementId));
         if (advancement == null) return;
 
         AdvancementProgress progress = player.getAdvancements().getOrStartProgress(advancement);

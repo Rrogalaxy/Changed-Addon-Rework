@@ -23,7 +23,10 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.*;
-import net.minecraft.world.entity.ai.attributes.*;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeMap;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.RestrictSunGoal;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
@@ -42,7 +45,9 @@ import net.minecraftforge.network.PlayMessages;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
 import static net.ltxprogrammer.changed.entity.HairStyle.BALD;
 
@@ -52,7 +57,7 @@ public class DazedLatexEntity extends ChangedEntity {
     // Definindo a chave de sincronização no seu código
     private static final EntityDataAccessor<Boolean> DATA_PUDDLE_MORPHED = SynchedEntityData.defineId(DazedLatexEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> DATA_REPLICATION_TIMES = SynchedEntityData.defineId(DazedLatexEntity.class, EntityDataSerializers.INT);
-    private static final Set<ResourceLocation> SPAWN_BIOMES = Set.of(new ResourceLocation("plains"));
+    private static final Set<ResourceLocation> SPAWN_BIOMES = Set.of(ResourceLocation.parse("plains"));
     public static UseItemMode PuddleForm = UseItemMode.create("PuddleForm", false, false, false, true, false);
 
     public boolean willTransfurTarget = false;

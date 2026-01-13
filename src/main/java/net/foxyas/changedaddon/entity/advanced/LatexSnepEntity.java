@@ -1,12 +1,14 @@
 package net.foxyas.changedaddon.entity.advanced;
 
+import net.foxyas.changedaddon.entity.api.IDynamicPawColor;
 import net.foxyas.changedaddon.entity.defaults.AbstractCanTameSnepChangedEntity;
 import net.foxyas.changedaddon.entity.goals.simple.SleepingWithOwnerGoal;
 import net.foxyas.changedaddon.init.ChangedAddonEntities;
-import net.foxyas.changedaddon.variants.ChangedAddonTransfurVariants;
+import net.foxyas.changedaddon.variant.ChangedAddonTransfurVariants;
 import net.ltxprogrammer.changed.entity.Gender;
 import net.ltxprogrammer.changed.entity.LatexType;
 import net.ltxprogrammer.changed.entity.TransfurMode;
+import net.ltxprogrammer.changed.entity.variant.EntityShape;
 import net.ltxprogrammer.changed.entity.variant.TransfurVariant;
 import net.ltxprogrammer.changed.init.ChangedAttributes;
 import net.ltxprogrammer.changed.process.ProcessTransfur;
@@ -31,10 +33,11 @@ import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PlayMessages;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.*;
 import java.util.List;
 import java.util.Objects;
 
-public class LatexSnepEntity extends AbstractCanTameSnepChangedEntity {
+public class LatexSnepEntity extends AbstractCanTameSnepChangedEntity implements IDynamicPawColor {
 
     public boolean WantLoaf = false; //Lol the cat don't WANT LOAF!
     public Gender gender = Gender.MALE;
@@ -48,6 +51,11 @@ public class LatexSnepEntity extends AbstractCanTameSnepChangedEntity {
         xpReward = 0;
         this.setAttributes(this.getAttributes());
         setNoAi(false);
+    }
+
+    @Override
+    public @NotNull EntityShape getEntityShape() {
+        return EntityShape.FERAL;
     }
 
     public static void init() {
@@ -147,12 +155,12 @@ public class LatexSnepEntity extends AbstractCanTameSnepChangedEntity {
 
     @Override
     public @NotNull SoundEvent getHurtSound(@NotNull DamageSource ds) {
-        return SoundEvents.OCELOT_HURT; //ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("entity.generic.hurt"));
+        return SoundEvents.OCELOT_HURT; //ForgeRegistries.SOUND_EVENTS.getValue(ResourceLocation.parse("entity.generic.hurt"));
     }
 
     @Override
     public @NotNull SoundEvent getDeathSound() {
-        return SoundEvents.OCELOT_DEATH; //ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("entity.generic.death"));
+        return SoundEvents.OCELOT_DEATH; //ForgeRegistries.SOUND_EVENTS.getValue(ResourceLocation.parse("entity.generic.death"));
     }
 
     @Override
@@ -209,12 +217,12 @@ public class LatexSnepEntity extends AbstractCanTameSnepChangedEntity {
     }
 
     @Override
-    protected @NotNull InteractionResult mobInteract(Player player, InteractionHand hand) {
+    protected @NotNull InteractionResult mobInteract(Player player, @NotNull InteractionHand hand) {
         return LatexSnepInteraction(player, hand);
     }
 
     @Override
-    public void startSleeping(BlockPos pos) {
+    public void startSleeping(@NotNull BlockPos pos) {
         // Obtém todas as entidades dentro de um cubo 3x3x3 ao redor do bloco onde a entidade vai dormir
         List<Entity> entities = this.level.getEntitiesOfClass(Entity.class, new AABB(pos).inflate(1));
 
@@ -233,4 +241,13 @@ public class LatexSnepEntity extends AbstractCanTameSnepChangedEntity {
     }
 
 
+    @Override
+    public Color getPawBeansColor() {
+        return Color.decode("#fdfdfd");
+    }
+
+    @Override
+    public Color getPawColor() {
+        return Color.decode("#969696");
+    }
 }

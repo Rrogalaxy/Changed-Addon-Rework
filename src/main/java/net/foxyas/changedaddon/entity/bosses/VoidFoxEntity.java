@@ -1,19 +1,22 @@
 package net.foxyas.changedaddon.entity.bosses;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.foxyas.changedaddon.ChangedAddonMod;
-import net.foxyas.changedaddon.abilities.DodgeAbilityInstance;
+import net.foxyas.changedaddon.ability.DodgeAbilityInstance;
+import net.foxyas.changedaddon.client.renderer.layers.features.SonarOutlineLayer;
+import net.foxyas.changedaddon.client.renderer.renderTypes.ChangedAddonRenderTypes;
+import net.foxyas.changedaddon.entity.api.ICrawlAbleEntity;
+import net.foxyas.changedaddon.entity.api.IDynamicPawColor;
+import net.foxyas.changedaddon.entity.api.IHasBossMusic;
 import net.foxyas.changedaddon.entity.goals.generic.attacks.ComboAbilityGoal;
+import net.foxyas.changedaddon.entity.goals.generic.attacks.ComboBurstGoal;
 import net.foxyas.changedaddon.entity.goals.generic.attacks.KnockBackBurstGoal;
 import net.foxyas.changedaddon.entity.goals.generic.attacks.SimpleComboAbilityGoal;
 import net.foxyas.changedaddon.entity.goals.void_fox.VoidFoxAntiFlyingAttack;
 import net.foxyas.changedaddon.entity.goals.void_fox.VoidFoxDashAttack;
-import net.foxyas.changedaddon.entity.interfaces.CrawlFeature;
-import net.foxyas.changedaddon.entity.interfaces.IHasBossMusic;
 import net.foxyas.changedaddon.entity.projectile.AbstractVoidFoxParticleProjectile;
 import net.foxyas.changedaddon.entity.projectile.VoidFoxParticleProjectile;
-import net.foxyas.changedaddon.init.ChangedAddonAbilities;
-import net.foxyas.changedaddon.init.ChangedAddonEntities;
-import net.foxyas.changedaddon.init.ChangedAddonSounds;
+import net.foxyas.changedaddon.init.*;
 import net.foxyas.changedaddon.util.FoxyasUtils;
 import net.ltxprogrammer.changed.ability.IAbstractChangedEntity;
 import net.ltxprogrammer.changed.entity.ChangedEntity;
@@ -23,12 +26,21 @@ import net.ltxprogrammer.changed.entity.TransfurMode;
 import net.ltxprogrammer.changed.init.ChangedAttributes;
 import net.ltxprogrammer.changed.util.Color3;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.*;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
@@ -45,9 +57,12 @@ import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -57,13 +72,15 @@ import net.minecraftforge.network.PlayMessages;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.awt.*;
 import java.util.Objects;
 
-public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBossMusic {
+public class VoidFoxEntity extends ChangedEntity implements ICrawlAbleEntity, IHasBossMusic, SonarOutlineLayer.CustomSonarRenderable, IDynamicPawColor {
     public static final int MAX_1_COOLDOWN = 120;
     public static final int MAX_2_COOLDOWN = 120;
     private static final int MAX_COOLDOWN = 120;
     public final ServerBossEvent bossBar = getBossBar();
+    public final ServerBossEvent dodgeHealthBossBar = getDodgeHealthBossBar();
     public int timesUsedAttack1, timesUsedAttack2, timesUsedAttack3, timesUsedAttack4/*, timesUsedAttack5*/ = 0;
     public int stunTicks = 0;
     public DodgeAbilityInstance dodgeAbilityInstance = null;
@@ -71,6 +88,9 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
     private int AttackInUse;
     private int ticksInUse;
     private int ticksTakeDmgFromFire = 0;
+
+    private static final EntityDataAccessor<Float> DODGE_HEALTH = SynchedEntityData.defineId(VoidFoxEntity.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Float> MAX_DODGE_HEALTH = SynchedEntityData.defineId(VoidFoxEntity.class, EntityDataSerializers.FLOAT);
 
     public VoidFoxEntity(PlayMessages.SpawnEntity ignoredPacket, Level world) {
         this(ChangedAddonEntities.VOID_FOX.get(), world);
@@ -82,6 +102,21 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
         setNoAi(false);
         setPersistenceRequired();
         this.dodgeAbilityInstance = this.registerAbility((abilityInstance -> true), new DodgeAbilityInstance(ChangedAddonAbilities.DODGE.get(), IAbstractChangedEntity.forEntity(this)));
+    }
+
+    @Override
+    public IDynamicPawColor.PawStyle getPawStyle() {
+        return IDynamicPawColor.PawStyle.FERAL;
+    }
+
+    @Override
+    public Color getPawBeansColor() {
+        return Color.WHITE;
+    }
+
+    @Override
+    public Color getPawColor() {
+        return Color.BLACK;
     }
 
     public static int getMaxCooldown() {
@@ -117,10 +152,22 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
         return bossBar;
     }
 
+    public ServerBossEvent getDodgeHealthBossBar() {
+        var bossBar = new ServerBossEvent(
+                this.getDisplayName(), // Nome exibido na boss bar
+                BossEvent.BossBarColor.WHITE, // Cor da barra
+                BossEvent.BossBarOverlay.NOTCHED_12 // Estilo da barra
+        );
+        bossBar.setCreateWorldFog(true);
+        bossBar.setDarkenScreen(true);
+        return bossBar;
+    }
+
     @Override
     protected void defineSynchedData() {
         super.defineSynchedData();
-        //this.entityData.define(DODGE_ANIM_TICKS, 0);
+        this.entityData.define(MAX_DODGE_HEALTH, 200f);
+        this.entityData.define(DODGE_HEALTH, getMaxDodgeHealth());
     }
 
     @Override
@@ -174,7 +221,7 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
                 }
             }
         });
-        this.goalSelector.addGoal(15, new KnockBackBurstGoal(this, 10));
+        this.goalSelector.addGoal(15, new ComboBurstGoal(this, 10, 10));
         this.goalSelector.addGoal(5, new VoidFoxDashAttack(this, ChangedAddonEntities.PARTICLE_PROJECTILE.get()) {
             @Override
             public boolean canUse() {
@@ -547,6 +594,9 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
 
+        if (tag.contains("dodgeHealth")) this.setDodgeHealth(tag.getFloat("dodgeHealth"));
+        if (tag.contains("maxDodgeHealth")) this.setMaxDodgeHealth(tag.getFloat("maxDodgeHealth"));
+
         if (tag.contains("AttacksHandle")) {
             CompoundTag attackTag = tag.getCompound("AttacksHandle");
 
@@ -570,6 +620,8 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
         super.addAdditionalSaveData(tag);
 
         //tag.putInt("dodgeTicks", this.getDodgingTicks());
+        tag.putFloat("dodgeHealth", this.getDodgeHealth());
+        tag.putFloat("maxDodgeHealth", this.getMaxDodgeHealth());
 
         CompoundTag attackTag = new CompoundTag();
         attackTag.putInt("Attack1Cooldown", this.Attack1Cooldown);
@@ -587,20 +639,42 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
         tag.put("AttacksHandle", attackTag);
     }
 
+    public float getDodgeHealth() {
+        return this.entityData.get(DODGE_HEALTH);
+    }
+
+    public void setDodgeHealth(float value) {
+        this.entityData.set(DODGE_HEALTH, value);
+    }
+
+    public void subDodgeHealth(float value) {
+        float pValue = Math.max(this.getDodgeHealth() - value, 0);
+        this.entityData.set(DODGE_HEALTH, pValue);
+    }
+
+    public void addDodgeHealth(float value) {
+        this.entityData.set(DODGE_HEALTH, this.getDodgeHealth() + value);
+    }
+
+    public void setMaxDodgeHealth(float maxDodgeHealth) {
+        this.entityData.set(MAX_DODGE_HEALTH, maxDodgeHealth);
+    }
+
+    public float getMaxDodgeHealth() {
+        return this.entityData.get(MAX_DODGE_HEALTH);
+    }
+
     @Override
     public boolean hurt(@NotNull DamageSource source, float amount) {
-        float randomValue = this.getRandom().nextFloat();
-        float value = this.computeHealthRatio() <= 0.5f ? 0.75f : 0.5f;
-        boolean willHit = randomValue <= value;
+        boolean willHit = this.getDodgeHealth() - amount <= 0;
+
         if (source.getEntity() instanceof AbstractVoidFoxParticleProjectile
                 || source.getDirectEntity() instanceof AbstractVoidFoxParticleProjectile) {
             boolean f = super.hurt(source, amount * 3.5f);
             this.invulnerableTime = 0;
-            this.hurtDuration = 1;
-            this.hurtDir = 1;
-            this.hurtTime = 1;
             return f;
         }
+
         if (source.isFire()) {
             ticksTakeDmgFromFire++;
         }
@@ -631,27 +705,124 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
                 }
 
             }
+
             if (!willHit) {
                 this.setDodging(source.getEntity());
+                this.hurtDodgeHealth(source, amount);
                 return false;
             } else {
+                this.hurtDodgeHealth(source, amount);
+                if (getDodgeHealth() > 0) this.setDodgeHealth(0);
                 this.RegisterDamage(amount);
                 //this.setDodging(source.getEntity());
                 return super.hurt(source, amount);
             }
 
         }
+
         if (source.getDirectEntity() != null &&
-                source.getDirectEntity().getType().getRegistryName() != null &&
-                source.getDirectEntity().getType().getRegistryName().toString().contains("bullet")) {
-            this.RegisterDamage(amount);
-            this.setDodging(source.getEntity());
-            return false;
+                source.getDirectEntity().getType().getRegistryName() != null) {
+            String id = source.getDirectEntity().getType().getRegistryName().toString();
+            if (id.contains("bullet") || id.contains("gun")) {
+                this.RegisterDamage(amount);
+                this.setDodging(source.getEntity());
+                return false;
+            }
         }
 
-        //this.setDodging(source.getEntity());
         return super.hurt(source, amount);
     }
+
+    @Override
+    protected void actuallyHurt(@NotNull DamageSource pDamageSource, float pDamageAmount) {
+        super.actuallyHurt(pDamageSource, pDamageAmount);
+    }
+
+    public boolean hurtDodgeHealth(@NotNull DamageSource damageSource, float damageAmount) {
+        if (!damageSource.isFire()) {
+
+            // Apply normal mitigations
+            damageAmount = this.getDamageAfterArmorAbsorb(damageSource, damageAmount);
+            damageAmount = this.getDamageAfterMagicAbsorb(damageSource, damageAmount);
+
+            // Subtract from dodge health
+            this.subDodgeHealth(damageAmount);
+
+            // Counter-attack trigger: solvent projectile
+            if (damageSource.isProjectile() && damageSource.getMsgId().contains(ChangedAddonDamageSources.LATEX_SOLVENT.getMsgId())) {
+                Entity attacker = damageSource.getDirectEntity();
+
+                if (attacker != null) {
+
+                    /* =======================================================
+                     * 1) Teleport behind the attacker (or fallback into them)
+                     * ======================================================= */
+
+                    // Vector pointing BEHIND the attacker
+                    Vec3 behind = attacker.getViewVector(0).scale(-0.5);
+
+                    boolean teleportedBehind = this.randomTeleport(
+                            attacker.getX() + behind.x,
+                            attacker.getY(),
+                            attacker.getZ() + behind.z,
+                            true
+                    );
+
+                    if (!teleportedBehind) {
+                        // Fallback: teleport in front of the attacker
+                        Vec3 inFront = attacker.getViewVector(0).scale(0.25);
+                        boolean teleportedInFront = this.randomTeleport(
+                                attacker.getX() + inFront.x,
+                                attacker.getY(),
+                                attacker.getZ() + inFront.z,
+                                true
+                        );
+
+                        // Fallback: teleport directly on top of the attacker
+                        if (!teleportedInFront) {
+                            Vec3 pos = attacker.position();
+                            this.teleportToWithTicket(pos.x, pos.y, pos.z);
+                        }
+                    }
+
+                    /* =======================================================
+                     * 2) Apply a knockback burst to the attacker
+                     * ======================================================= */
+
+                    // Direction: mob → attacker
+                    double dx = attacker.getX() - this.getX();
+                    double dy = attacker.getY() - this.getY();
+                    double dz = attacker.getZ() - this.getZ();
+                    double distance = Math.max(0.2, Math.sqrt(dx * dx + dy * dy + dz * dz));
+
+                    double force = 1.25; // knockback force
+
+                    attacker.push(
+                            (dx / distance) * force,
+                            (dy / distance) * force,
+                            (dz / distance) * force
+                    );
+
+                    attacker.hurtMarked = true; // sync movement with the client
+
+                    // Apply cooldown to the player's item
+                    if (attacker instanceof Player player) {
+                        final Item laethinminator = ChangedAddonItems.LAETHINMINATOR.get();
+                        if (player.getUseItem().is(laethinminator)) {
+                            player.getCooldowns().addCooldown(laethinminator, 600);
+                            player.stopUsingItem();
+                        }
+                    }
+                }
+            }
+
+            // Register dodge damage in combat tracker
+            this.getCombatTracker().recordDamage(damageSource, this.getDodgeHealth(), damageAmount);
+            return true;
+        }
+        return false;
+    }
+
 
     private void setDodging(Entity entity) {
         if (entity != null) {
@@ -707,7 +878,7 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
     }
 
     public boolean isMoreOp() {
-        return this.computeHealthRatio() <= 0.5f;
+        return this.getDodgeHealth() <= 0;
     }
 
     @Override
@@ -789,10 +960,14 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
                 }
 
             }
-            if (this.computeHealthRatio() <= 0.5) {
-                this.bossBar.setProgress(computeHealthRatio() / 0.5f);
-                this.bossBar.setOverlay(BossEvent.BossBarOverlay.NOTCHED_6);
+            if (this.getDodgeHealth() > 0) {
+                this.dodgeHealthBossBar.setVisible(true);
+                this.bossBar.setVisible(false);
+                this.dodgeHealthBossBar.setProgress(this.getDodgeHealth() / this.getMaxDodgeHealth());
+                this.dodgeHealthBossBar.setOverlay(BossEvent.BossBarOverlay.NOTCHED_12);
             } else {
+                this.bossBar.setVisible(true);
+                this.dodgeHealthBossBar.setVisible(false);
                 this.bossBar.setProgress(this.getHealth() / this.getMaxHealth());
                 this.bossBar.setOverlay(BossEvent.BossBarOverlay.NOTCHED_10);
             }
@@ -824,21 +999,32 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
     @Override
     public void startSeenByPlayer(@NotNull ServerPlayer player) {
         super.startSeenByPlayer(player);
+        this.dodgeHealthBossBar.addPlayer(player);
         this.bossBar.addPlayer(player);
-        player.displayClientMessage(
-                new TextComponent("A dark presence spreads through the land...\nWill you dare to confront its origin?").withStyle((style -> {
-                    Style returnStyle = style.withColor(ChatFormatting.DARK_GRAY);
-                    returnStyle = returnStyle.withItalic(true);
-                    return returnStyle;
-                })),
-                false
+
+        // Mensagem atmosférica
+        MutableComponent chatComponent = new TextComponent(
+                "A chill runs down your spine...\n" +
+                        "Something is watching."
+        ).withStyle(style -> style
+                .withColor(ChatFormatting.DARK_GRAY)
+                .withItalic(true)
         );
+
+//        player.displayClientMessage(
+//                chatComponent,
+//                false
+//        );
+
+        player.sendMessage(chatComponent, ChatType.CHAT,this.getUUID());
     }
+
 
     @Override
     public void stopSeenByPlayer(@NotNull ServerPlayer player) {
         super.stopSeenByPlayer(player);
         this.bossBar.removePlayer(player);
+        this.dodgeHealthBossBar.removePlayer(player);
     }
 
     @Override
@@ -884,16 +1070,14 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
         super.setTarget(entity);
     }
 
+    // Don't know why but getId do not work fine with the BossMusicHandler
     @Override
     public ResourceLocation getBossMusic() {
-        if (this.computeHealthRatio() <= 0.5f) {
-            assert ChangedAddonSounds.EXP10_THEME != null;
-            return ChangedAddonSounds.EXP10_THEME.getLocation();
+        if (this.isMoreOp()) {
+            return ChangedAddonSoundEvents.EXP10_THEME.get().getLocation();
         }
 
-
-        assert ChangedAddonSounds.EXP9_THEME != null;
-        return ChangedAddonSounds.EXP9_THEME.getLocation();
+        return ChangedAddonSoundEvents.EXP9_THEME.get().getLocation();
     }
 
     @Override
@@ -908,6 +1092,46 @@ public class VoidFoxEntity extends ChangedEntity implements CrawlFeature, IHasBo
 
     public int getAttackInUse() {
         return AttackInUse;
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    @Override
+    public boolean handleSonarRender(@NotNull SonarOutlineLayer<?, ?> sonarOutlineLayer, @NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, float limbSwing, float limbSwingAmount, float partialTicks, float ageInTicks, float netHeadYaw, float headPitch, float alpha) {
+        // Default colors: white
+        float r = 1.0f, g = 1.0f, b = 1.0f;
+
+        Minecraft minecraft = Minecraft.getInstance();
+        EntityRenderDispatcher entityRenderDispatcher = minecraft.getEntityRenderDispatcher();
+        EntityRenderer<? super VoidFoxEntity> renderer = entityRenderDispatcher.getRenderer(this);
+        RenderType outline = ChangedAddonRenderTypes.outlineWithTranslucencyCull(renderer.getTextureLocation(this));
+        sonarOutlineLayer.getParentModel().renderToBuffer(
+                poseStack,
+                buffer.getBuffer(outline),
+                packedLight,
+                OverlayTexture.NO_OVERLAY,
+                r, g, b, alpha
+        );
+        return true;
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    @Override
+    public boolean handleSonarRenderForCamera(@NotNull SonarOutlineLayer<?, ?> sonarOutlineLayer, @NotNull LivingEntity livingEntity, @NotNull PoseStack poseStack, @NotNull MultiBufferSource buffer, int packedLight, float limbSwing, float limbSwingAmount, float partialTicks, float ageInTicks, float netHeadYaw, float headPitch, float alpha) {
+        // Default colors: white
+        float r = 1.0f, g = 1, b = 1;
+
+        Minecraft minecraft = Minecraft.getInstance();
+        EntityRenderDispatcher entityRenderDispatcher = minecraft.getEntityRenderDispatcher();
+        EntityRenderer<? super LivingEntity> renderer = entityRenderDispatcher.getRenderer(livingEntity);
+        RenderType outline = ChangedAddonRenderTypes.outlineWithTranslucencyCull(renderer.getTextureLocation(livingEntity));
+        sonarOutlineLayer.getParentModel().renderToBuffer(
+                poseStack,
+                buffer.getBuffer(outline),
+                packedLight,
+                OverlayTexture.NO_OVERLAY,
+                r, g, b, alpha
+        );
+        return true;
     }
 
     @Mod.EventBusSubscriber(modid = ChangedAddonMod.MODID)

@@ -1,22 +1,23 @@
 package net.foxyas.changedaddon.entity.bosses;
 
 import net.foxyas.changedaddon.ChangedAddonMod;
-import net.foxyas.changedaddon.abilities.DodgeAbilityInstance;
-import net.foxyas.changedaddon.effect.particles.ChangedAddonParticles;
-import net.foxyas.changedaddon.entity.customHandle.BossMusicTheme;
+import net.foxyas.changedaddon.ability.DodgeAbilityInstance;
+import net.foxyas.changedaddon.entity.api.CustomPatReaction;
+import net.foxyas.changedaddon.entity.api.ICrawlAbleEntity;
+import net.foxyas.changedaddon.entity.api.IHasBossMusic;
 import net.foxyas.changedaddon.entity.customHandle.Exp9AttacksHandle;
 import net.foxyas.changedaddon.entity.goals.exp9.*;
 import net.foxyas.changedaddon.entity.goals.generic.BreakBlocksAroundGoal;
 import net.foxyas.changedaddon.entity.goals.generic.attacks.SimpleAntiFlyingAttack;
-import net.foxyas.changedaddon.entity.interfaces.BossWithMusic;
-import net.foxyas.changedaddon.entity.interfaces.CustomPatReaction;
-import net.foxyas.changedaddon.init.ChangedAddonAbilities;
-import net.foxyas.changedaddon.init.ChangedAddonEntities;
+import net.foxyas.changedaddon.init.*;
 import net.foxyas.changedaddon.util.ColorUtil;
+import net.foxyas.changedaddon.util.FoxyasUtils;
 import net.foxyas.changedaddon.util.ParticlesUtil;
+import net.foxyas.changedaddon.variant.ChangedAddonTransfurVariants;
 import net.ltxprogrammer.changed.entity.*;
 import net.ltxprogrammer.changed.entity.variant.TransfurVariantInstance;
 import net.ltxprogrammer.changed.init.ChangedAttributes;
+import net.ltxprogrammer.changed.init.ChangedDamageSources;
 import net.ltxprogrammer.changed.init.ChangedParticles;
 import net.ltxprogrammer.changed.process.ProcessTransfur;
 import net.ltxprogrammer.changed.util.Color3;
@@ -31,11 +32,12 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.Mth;
 import net.minecraft.util.valueproviders.ConstantFloat;
 import net.minecraft.util.valueproviders.UniformFloat;
 import net.minecraft.util.valueproviders.UniformInt;
@@ -54,6 +56,8 @@ import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.world.entity.vehicle.Minecart;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
@@ -69,9 +73,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import static net.foxyas.changedaddon.event.TransfurEvents.getPlayerVars;
 import static net.ltxprogrammer.changed.entity.HairStyle.BALD;
 
-public class Experiment009BossEntity extends ChangedEntity implements BossWithMusic, CustomPatReaction, PowderSnowWalkable {
+public class Experiment009BossEntity extends ChangedEntity implements CustomPatReaction, PowderSnowWalkable, IHasBossMusic, ICrawlAbleEntity {
 
     private static final EntityDataAccessor<Boolean> PHASE2 =
             SynchedEntityData.defineId(Experiment009BossEntity.class, EntityDataSerializers.BOOLEAN);
@@ -133,16 +138,6 @@ public class Experiment009BossEntity extends ChangedEntity implements BossWithMu
     }
 
     @Override
-    public boolean ShouldPlayMusic() {
-        return this.isAlive();
-    }
-
-    @Override
-    public @NotNull BossMusicTheme BossMusicTheme() {
-        return BossMusicTheme.EXP9;
-    }
-
-    @Override
     public boolean startRiding(@NotNull Entity EntityIn, boolean force) {
         if (EntityIn instanceof Boat || EntityIn instanceof Minecart) {
             return false;
@@ -169,7 +164,7 @@ public class Experiment009BossEntity extends ChangedEntity implements BossWithMu
 
     @Override
     protected boolean targetSelectorTest(LivingEntity livingEntity) {
-        return livingEntity instanceof Player || livingEntity instanceof ServerPlayer || livingEntity.getType().is(TagKey.create(Registry.ENTITY_TYPE_REGISTRY, new ResourceLocation("changed:humanoids")));
+        return livingEntity instanceof Player || livingEntity instanceof ServerPlayer || livingEntity.getType().is(TagKey.create(Registry.ENTITY_TYPE_REGISTRY, ResourceLocation.parse("changed:humanoids")));
     }
 
     @Override
@@ -284,6 +279,11 @@ public class Experiment009BossEntity extends ChangedEntity implements BossWithMu
             Player playerInControl = this.getUnderlyingPlayer();
             TransfurVariantInstance<?> transfurVariantInstance = ProcessTransfur.getPlayerTransfurVariant(playerInControl);
             if (transfurVariantInstance != null) {
+                if (playerInControl.getLevel().getLevelData().getGameRules().getBoolean(ChangedAddonGameRules.NEED_PERMISSION_FOR_BOSS_TRANSFUR)) {
+                    if (!getPlayerVars(playerInControl).Exp009TransfurAllowed) {
+                        ProcessTransfur.setPlayerTransfurVariant(playerInControl, ChangedAddonTransfurVariants.EXPERIMENT_009.get(), TransfurContext.hazard(TransfurCause.GRAB_ABSORB), 1, false);
+                    }
+                }
                 DodgeAbilityInstance dodgeAbilityInstance = transfurVariantInstance.getAbilityInstance(ChangedAddonAbilities.DODGE.get());
                 if (dodgeAbilityInstance != null && dodgeAbilityInstance.getMaxDodgeAmount() < 10) {
                     dodgeAbilityInstance.setMaxDodgeAmount(10);
@@ -291,6 +291,21 @@ public class Experiment009BossEntity extends ChangedEntity implements BossWithMu
                 }
             }
         }
+    }
+
+    @Override
+    public @Nullable ResourceLocation getBossMusic() {
+        return ChangedAddonSoundEvents.EXP9_THEME.get().getLocation();
+    }
+
+    @Override
+    public LivingEntity getSelf() {
+        return this;
+    }
+
+    @Override
+    public float getMusicVolume() {
+        return 0.5f;
     }
 
     @Mod.EventBusSubscriber(modid = ChangedAddonMod.MODID)
@@ -381,6 +396,14 @@ public class Experiment009BossEntity extends ChangedEntity implements BossWithMu
             }
         }
         return super.hurt(source, amount);
+    }
+
+    @Override
+    public boolean isDamageSourceBlocked(@NotNull DamageSource pDamageSource) {
+        if (pDamageSource == ChangedDamageSources.ELECTROCUTION) {
+            return true;
+        }
+        return super.isDamageSourceBlocked(pDamageSource);
     }
 
     @Override
@@ -488,17 +511,26 @@ public class Experiment009BossEntity extends ChangedEntity implements BossWithMu
                     double y = this.getY() + Math.cos(anglePhi) * 4.0;
                     double z = this.getZ() + Math.sin(anglePhi) * Math.sin(angleTheta) * 4.0;
                     Vec3 pos = new Vec3(x, y, z);
-                    ParticlesUtil.sendParticles(
-                            entityDamageSource.getDirectEntity().getLevel(),
+                    ParticlesUtil.sendParticlesWithMotion(
+                            this,
                             ParticleTypes.ELECTRIC_SPARK,
-                            pos,
-                            0.1f, 0.1f, 0.1f,
+                            new Vec3(0, 0, 0),
+                            this.position().subtract(pos),
                             5, 0.025f
                     );
                 }
             }
             this.playSound(SoundEvents.GENERIC_EXPLODE, 1, 1);
+            for (BlockPos pos : FoxyasUtils.betweenClosedStreamSphere(blockPosition(), 16, 16, 1).toList()) {
+                BlockState state = level.getBlockState(pos);
+
+                if (state.is(Blocks.FIRE) || state.is(Blocks.SOUL_FIRE)) {
+                    level.removeBlock(pos, false);
+                    level.levelEvent(1009, pos, 0); // Partículas e som de "extinguir fogo"
+                }
+            }
         }
+
         super.die(damageSource);
     }
 
@@ -506,22 +538,28 @@ public class Experiment009BossEntity extends ChangedEntity implements BossWithMu
     public void baseTick() {
         super.baseTick();
         if (this.getUnderlyingPlayer() == null) {
+            if (firstTick) {
+                this.getBasicPlayerInfo().setSize(1f);
+                this.getBasicPlayerInfo().setEyeStyle(EyeStyle.TALL);
+            }
+
             if (shouldBleed && (this.computeHealthRatio() / 0.4f) > 0.25f && this.tickCount % 4 == 0) {
                 this.setHealth(this.getHealth() - 0.25f);
             }
+
             if (this.getRandom().nextFloat() < 1 - Math.min(0.95, computeHealthRatio())) {
                 if (this.isPhase2()) {
                     if (this.shouldBleed) {
                         ParticlesUtil.sendParticles(this.getLevel(), ParticleTypes.ELECTRIC_SPARK, this.getEyePosition().subtract(0, this.getRandom().nextFloat(this.getEyeHeight()), 0), 0.3f, 0.25f, 0.3f, 15, 0.01f);
-                        ParticlesUtil.sendParticles(this.getLevel(), ChangedAddonParticles.thunderSpark(1), this.getEyePosition().subtract(0, this.getRandom().nextFloat(this.getEyeHeight()), 0), 0.3f, 0.25f, 0.3f, 15, 0.05f);
+                        ParticlesUtil.sendParticles(this.getLevel(), ChangedAddonParticleTypes.thunderSpark(1), this.getEyePosition().subtract(0, this.getRandom().nextFloat(this.getEyeHeight()), 0), 0.3f, 0.25f, 0.3f, 15, 0.05f);
                     } else {
                         if (this.getRandom().nextFloat() > 0.95) {
                             ParticlesUtil.sendParticles(this.getLevel(), ParticleTypes.ELECTRIC_SPARK, this.getEyePosition().subtract(0, this.getRandom().nextFloat(this.getEyeHeight()), 0), 0.3f, 0.25f, 0.3f, 10, 0.01f);
                         }
-                        ParticlesUtil.sendParticles(this.getLevel(), ChangedAddonParticles.thunderSpark(1), this.getEyePosition().subtract(0, this.getRandom().nextFloat(this.getEyeHeight()), 0), 0.25f, 0.25f, 0.25f, 10, 1);
+                        ParticlesUtil.sendParticles(this.getLevel(), ChangedAddonParticleTypes.thunderSpark(1), this.getEyePosition().subtract(0, this.getRandom().nextFloat(this.getEyeHeight()), 0), 0.25f, 0.25f, 0.25f, 10, 1);
                     }
                 } else {
-                    ParticlesUtil.sendParticles(this.getLevel(), ChangedAddonParticles.thunderSpark(1), this.getEyePosition().subtract(0, this.getRandom().nextFloat(this.getEyeHeight()), 0), 0.25f, 0.25f, 0.25f, 5, 1);
+                    ParticlesUtil.sendParticles(this.getLevel(), ChangedAddonParticleTypes.thunderSpark(1), this.getEyePosition().subtract(0, this.getRandom().nextFloat(this.getEyeHeight()), 0), 0.25f, 0.25f, 0.25f, 5, 1);
                 }
             }
 
@@ -535,19 +573,11 @@ public class Experiment009BossEntity extends ChangedEntity implements BossWithMu
                 } else {
                     applyStatModifier(this, 1.5);
                 }
-                /*
-                Color[] colors = new Color[2];
-                colors[0] = new Color(70, 199, 255);
-                colors[1] = new Color(13, 160, 208);
-                ParticleOptions dustColor = getParticleOptions(colors[0], colors[1]);
-                PlayerUtilProcedure.ParticlesUtil.sendParticles(this.getLevel(), dustColor, this.position().add(0, 0.5, 0), 0.35f, 0.70f, 0.35f, 5, 0);
-                */
             } else {
                 removeStatModifiers();
             }
-            updateSwimmingMovement();
             setSpeed(this);
-            crawlingSystem(this.getTarget());
+            this.crawlingSystem(0.025f);
         }
     }
 
@@ -652,59 +682,14 @@ public class Experiment009BossEntity extends ChangedEntity implements BossWithMu
         }
     }
 
-    public void crawlingSystem(LivingEntity target) {
-        if (target != null) {
-            setCrawlingPoseIfNeeded(target);
-            crawlToTarget(target);
-        } else {
-            if (!this.isSwimming() && !this.level.getBlockState(new BlockPos(this.getX(), this.getEyeY(), this.getZ())).isAir()) {
-                this.setPose(Pose.SWIMMING);
-            }
-        }
-    }
-
-    public void setCrawlingPoseIfNeeded(LivingEntity target) {
-        if (target.getPose() == Pose.SWIMMING && this.getPose() != Pose.SWIMMING) {
-            if (target.getY() < this.getEyeY() && !target.level.getBlockState(new BlockPos(target.getX(), target.getEyeY(), target.getZ()).above()).isAir()) {
-                this.setPose(Pose.SWIMMING);
-            }
-        } else {
-            if (!this.isSwimming() && this.level.getBlockState(new BlockPos(this.getX(), this.getEyeY(), this.getZ()).above()).isAir()) {
-                this.setPose(Pose.STANDING);
-            }
-        }
-    }
-
-    public void crawlToTarget(LivingEntity target) {
-        if (target.getPose() == Pose.SWIMMING && this.getPose() == Pose.SWIMMING) {
-            Vec3 direction = target.position().subtract(this.position()).normalize();
-            this.setDeltaMovement(this.getDeltaMovement().add(direction.scale(0.05)));
-        }
-    }
-
-    public void updateSwimmingMovement() {
-        if (this.isInWater()) {
-            if (this.getTarget() != null) {
-                Vec3 direction = this.getTarget().position().subtract(this.position()).normalize();
-                this.setDeltaMovement(this.getDeltaMovement().add(direction.scale(0.07)));
-            }
-            if (this.isEyeInFluid(FluidTags.WATER)) {
-                this.setPose(Pose.SWIMMING);
-                this.setSwimming(true);
-            } else {
-                this.setPose(Pose.STANDING);
-                this.setSwimming(false);
-            }
-        } else if (this.getPose() == Pose.SWIMMING && !this.isInWater() && this.level.getBlockState(new BlockPos(this.getX(), this.getEyeY(), this.getZ()).above()).isAir()) {
-            this.setPose(Pose.STANDING);
-        }
-    }
-
     @Override
     public void WhenPattedReaction(Player player, InteractionHand hand) {
-        if (!player.getLevel().isClientSide) {
-            return;
+        if (!(player.getLevel() instanceof ServerLevel serverLevel)) return;
+        if (player instanceof ServerPlayer serverPlayer) {
+            ChangedAddonCriteriaTriggers.PAT_ENTITY_TRIGGER.Trigger(serverPlayer, this, "pats_on_the_beast");
         }
+
+
         List<TranslatableComponent> translatableComponentList = new ArrayList<>();
         translatableComponentList.add(new TranslatableComponent("changed_addon.entity_dialogues.exp9.pat.type_1"));
         translatableComponentList.add(new TranslatableComponent("changed_addon.entity_dialogues.exp9.pat.type_2"));
@@ -720,5 +705,19 @@ public class Experiment009BossEntity extends ChangedEntity implements BossWithMu
                 0.0f, 1, 0f
         );
         player.displayClientMessage(translatableComponentList.get(this.getRandom().nextInt(translatableComponentList.size())), false);
+        applyRampage();
+    }
+
+    private void applyRampage() {
+        MobEffectInstance thisEffect = this.getEffect(MobEffects.DAMAGE_BOOST);
+        MobEffectInstance mobEffectInstance;
+        if (thisEffect != null) {
+            int pDuration = thisEffect.getDuration() + 10;
+            int pAmplifier = Mth.clamp(thisEffect.getAmplifier() + 1, 0, 5);
+            mobEffectInstance = new MobEffectInstance(MobEffects.DAMAGE_BOOST, pDuration, pAmplifier, thisEffect.isAmbient(), thisEffect.isVisible(), thisEffect.showIcon());
+        } else {
+            mobEffectInstance = new MobEffectInstance(MobEffects.DAMAGE_BOOST, 20, 0, true, true, true);
+        }
+        this.addEffect(mobEffectInstance);
     }
 }

@@ -3,8 +3,9 @@ package net.foxyas.changedaddon.configuration;
 import net.minecraftforge.common.ForgeConfigSpec;
 
 public class ChangedAddonClientConfiguration {
-    public static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
+
     public static final ForgeConfigSpec SPEC;
+
     public static final ForgeConfigSpec.ConfigValue<Boolean> MUSIC_PLAYER;
     public static final ForgeConfigSpec.ConfigValue<Boolean> FEMALE_SNEPS_HAIR;
     public static final ForgeConfigSpec.ConfigValue<Boolean> MALE_SNEPS_HAIR;
@@ -16,8 +17,11 @@ public class ChangedAddonClientConfiguration {
     public static final ForgeConfigSpec.ConfigValue<Boolean> SHOW_EXTRA_HAND;
     public static final ForgeConfigSpec.ConfigValue<Boolean> SMOOTH_LASER_MOVEMENT;
     public static final ForgeConfigSpec.ConfigValue<Boolean> PLANTOIDS_VISIBILITY;
+    public static final ForgeConfigSpec.ConfigValue<Boolean> ALPHA_COMPATIBILITY_MODE_RENDER;
 
     static {
+        ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
+
         BUILDER.push("MusicPlayer");
         MUSIC_PLAYER = BUILDER.comment("allow the music player to play boss themes").define("Music Player", true);
         BUILDER.pop();
@@ -42,12 +46,9 @@ public class ChangedAddonClientConfiguration {
 
         BUILDER.push("ModelsHandle");
         PLANTOIDS_VISIBILITY = BUILDER.comment("Turn off the Plantoids [Female Chest Features]").define("Turn Off the Plantoids", false);
-        BUILDER.pop();
-
-        BUILDER.push("Textual Info ");
+        ALPHA_COMPATIBILITY_MODE_RENDER = BUILDER.comment("Turn the Compatibility Mode Render For Alpha Scales, turning this off may add some performance").define("Alpha Compatibility Render Mode", true);
         BUILDER.pop();
 
         SPEC = BUILDER.build();
     }
-
 }

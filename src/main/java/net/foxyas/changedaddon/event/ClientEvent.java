@@ -1,9 +1,11 @@
 package net.foxyas.changedaddon.event;
 
 import net.foxyas.changedaddon.ChangedAddonMod;
+import net.foxyas.changedaddon.client.renderer.layers.features.SonarOutlineLayer;
+import net.foxyas.changedaddon.command.ChangedAddonCommandRootCommand;
 import net.foxyas.changedaddon.process.sounds.BossMusicHandler;
 import net.foxyas.changedaddon.util.TransfurVariantUtils;
-import net.foxyas.changedaddon.variants.ChangedAddonTransfurVariants;
+import net.foxyas.changedaddon.variant.ChangedAddonTransfurVariants;
 import net.ltxprogrammer.changed.entity.variant.TransfurVariant;
 import net.ltxprogrammer.changed.init.ChangedItems;
 import net.ltxprogrammer.changed.init.ChangedRegistry;
@@ -11,12 +13,15 @@ import net.ltxprogrammer.changed.item.Syringe;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.RegisterClientCommandsEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -32,7 +37,13 @@ public class ClientEvent {
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase == TickEvent.Phase.END && Minecraft.getInstance().level != null) {
             BossMusicHandler.tick(Minecraft.getInstance().level);
+            SonarOutlineLayer.SonarClientState.tick();
         }
+    }
+
+    @SubscribeEvent
+    public static void registerCommands(RegisterClientCommandsEvent clientCommandsEvent) {
+        ChangedAddonCommandRootCommand.registerClientCommands(clientCommandsEvent.getDispatcher());
     }
 
     @SubscribeEvent
@@ -109,18 +120,22 @@ public class ClientEvent {
                 index++;
                 tooltip.add(index, new TranslatableComponent("text.changed_addon.canGlide/Fly")
                         .append("")
-                        .append(TransfurVariantUtils.CanGlideandFly(tf)
+                        .append(TransfurVariantUtils.CanGlideAndFly(tf)
                                 ? new TextComponent("§aTrue§r")
                                 : new TextComponent("§cFalse§r")));
             }
 
             if (ChangedAddonTransfurVariants.isVariantOC(loc, entity.getLevel())) {
-                tooltip.add(new TextComponent("§8OC Transfur"));
+                List<Component> ocVariantComponents = ChangedAddonTransfurVariants.getVariantComponentIfAny(tf, entity.getLevel());
+                MutableComponent append = new TextComponent("§8OC Transfur");
+                tooltip.add(append);
+                if (ocVariantComponents != null && !ocVariantComponents.isEmpty()) {
+                    tooltip.addAll(ocVariantComponents);
+                }
             }
         }
 
-        if (ChangedAddonTransfurVariants.getBossesVariantsList().stream().anyMatch(variant ->
-                variant.getFormId().equals(loc))) {
+        if (ChangedAddonTransfurVariants.isBossVariant(tf)) {
             tooltip.add(new TextComponent("§8Boss Version"));
         }
     }

@@ -2,6 +2,7 @@ package net.foxyas.changedaddon.client.model;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.foxyas.changedaddon.ChangedAddonMod;
 import net.foxyas.changedaddon.client.renderer.layers.animation.CarryAbilityAnimation;
 import net.foxyas.changedaddon.entity.simple.SnowLeopardMaleOrganicEntity;
 import net.ltxprogrammer.changed.client.renderer.animate.AnimatorPresets;
@@ -12,7 +13,6 @@ import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.*;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.HumanoidArm;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,7 +20,7 @@ import java.util.List;
 
 public class BioSynthSnowLeopardMaleModel extends AdvancedHumanoidModel<SnowLeopardMaleOrganicEntity> implements AdvancedHumanoidModelInterface<SnowLeopardMaleOrganicEntity, BioSynthSnowLeopardMaleModel> {
     // This layer location should be baked with EntityRendererProvider.Context in the entity renderer and passed into this model's constructor
-    public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(new ResourceLocation("changed_addon", "biosynth_snow_leopard_male"), "main");
+    public static final ModelLayerLocation LAYER_LOCATION = ChangedAddonMod.layerLocation("biosynth_snow_leopard_male", "main");
     private final ModelPart RightLeg;
     private final ModelPart LeftLeg;
     private final ModelPart Head;
@@ -200,11 +200,11 @@ public class BioSynthSnowLeopardMaleModel extends AdvancedHumanoidModel<SnowLeop
          return corrector;
      }
   */
+
     @Override
     public void setupHand(SnowLeopardMaleOrganicEntity entity) {
         animator.setupHand();
     }
-
 
     @Override
     public void setupAnim(@NotNull SnowLeopardMaleOrganicEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {

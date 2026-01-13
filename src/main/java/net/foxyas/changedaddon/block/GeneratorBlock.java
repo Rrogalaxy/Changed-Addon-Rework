@@ -2,8 +2,8 @@ package net.foxyas.changedaddon.block;
 
 import io.netty.buffer.Unpooled;
 import net.foxyas.changedaddon.block.entity.GeneratorBlockEntity;
-import net.foxyas.changedaddon.procedures.GeneratorUpdateTickProcedure;
-import net.foxyas.changedaddon.world.inventory.GeneratorGuiMenu;
+import net.foxyas.changedaddon.procedure.GeneratorUpdateTickProcedure;
+import net.foxyas.changedaddon.menu.GeneratorGuiMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
@@ -66,7 +66,7 @@ public class GeneratorBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public boolean canConnectRedstone(BlockState state, BlockGetter world, BlockPos pos, Direction side) {
+    public boolean canConnectRedstone(BlockState state, BlockGetter world, BlockPos pos, @Nullable Direction side) {
         return true;
     }
 

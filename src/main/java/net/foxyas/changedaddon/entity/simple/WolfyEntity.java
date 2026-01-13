@@ -1,10 +1,17 @@
 package net.foxyas.changedaddon.entity.simple;
 
+import net.foxyas.changedaddon.entity.api.IGrabberEntity;
+import net.foxyas.changedaddon.entity.goals.abilities.MayDropGrabbedEntityGoal;
+import net.foxyas.changedaddon.entity.goals.abilities.MayGrabTargetGoal;
 import net.foxyas.changedaddon.init.ChangedAddonEntities;
 import net.foxyas.changedaddon.init.ChangedAddonItems;
+import net.foxyas.changedaddon.init.ChangedAddonMobEffects;
 import net.foxyas.changedaddon.init.ChangedAddonTags;
-import net.foxyas.changedaddon.procedures.CreatureDietsHandleProcedure;
-import net.foxyas.changedaddon.variants.VariantExtraStats;
+import net.foxyas.changedaddon.variant.ChangedAddonTransfurVariants;
+import net.foxyas.changedaddon.variant.VariantExtraStats;
+import net.ltxprogrammer.changed.ability.AbstractAbility;
+import net.ltxprogrammer.changed.ability.AbstractAbilityInstance;
+import net.ltxprogrammer.changed.ability.GrabEntityAbilityInstance;
 import net.ltxprogrammer.changed.ability.IAbstractChangedEntity;
 import net.ltxprogrammer.changed.entity.Gender;
 import net.ltxprogrammer.changed.entity.HairStyle;
@@ -12,35 +19,43 @@ import net.ltxprogrammer.changed.entity.TransfurCause;
 import net.ltxprogrammer.changed.entity.TransfurMode;
 import net.ltxprogrammer.changed.entity.beast.AbstractDarkLatexWolf;
 import net.ltxprogrammer.changed.entity.variant.TransfurVariant;
+import net.ltxprogrammer.changed.entity.variant.TransfurVariantInstance;
 import net.ltxprogrammer.changed.init.ChangedAttributes;
 import net.ltxprogrammer.changed.init.ChangedItems;
+import net.ltxprogrammer.changed.process.ProcessTransfur;
 import net.ltxprogrammer.changed.util.Color3;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobType;
+import net.minecraft.world.damagesource.EntityDamageSource;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.ForgeMod;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PlayMessages;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
 
-import static net.foxyas.changedaddon.procedures.CreatureDietsHandleProcedure.*;
+import static net.foxyas.changedaddon.procedure.CreatureDietsHandleProcedure.DietType;
 
-public class WolfyEntity extends AbstractDarkLatexWolf implements VariantExtraStats {
+public class WolfyEntity extends AbstractDarkLatexWolf implements VariantExtraStats, IGrabberEntity {
+
+    protected GrabEntityAbilityInstance grabEntityAbilityInstance;
+    protected int grabCooldown = 0;
 
     public WolfyEntity(PlayMessages.SpawnEntity ignoredPacket, Level world) {
         this(ChangedAddonEntities.WOLFY.get(), world);
@@ -52,9 +67,44 @@ public class WolfyEntity extends AbstractDarkLatexWolf implements VariantExtraSt
         this.setAttributes(getAttributes());
         setNoAi(false);
         setPersistenceRequired();
+
+        this.grabEntityAbilityInstance = this.createGrabAbility();
     }
 
     public static void init() {
+    }
+
+    @Mod.EventBusSubscriber
+    public static class WolfyAttackedEvent {
+
+        @SubscribeEvent
+        public static void onEntityAttacked(LivingAttackEvent event) {
+            Entity entity = event.getEntity();
+            if (!(entity instanceof Player player)) return;
+
+            TransfurVariantInstance<?> instance = ProcessTransfur.getPlayerTransfurVariant(player);
+            if (instance == null || !instance.is(ChangedAddonTransfurVariants.WOLFY)) return;
+
+            DamageSource damagesource = event.getSource();
+            if (damagesource instanceof EntityDamageSource _entityDamageSource && _entityDamageSource.isThorns()) {
+                event.setCanceled(true);
+                return;
+            }
+
+            if (damagesource.isFire()) {
+                event.setCanceled(true);
+                return;
+            }
+
+            if (damagesource.isExplosion()) {
+                event.setCanceled(true);
+                return;
+            }
+
+            if (damagesource == DamageSource.LIGHTNING_BOLT) {
+                event.setCanceled(true);
+            }
+        }
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -83,6 +133,15 @@ public class WolfyEntity extends AbstractDarkLatexWolf implements VariantExtraSt
 
     @Override
     public boolean tryAbsorbTarget(LivingEntity target, IAbstractChangedEntity source, float amount, @Nullable List<TransfurVariant<?>> possibleMobFusions) {
+        boolean thisOrUnderlyingPlayerHasEffect = (
+                (
+                        this.getUnderlyingPlayer() != null && this.getUnderlyingPlayer().hasEffect(MobEffects.DAMAGE_BOOST)
+                ) || this.hasEffect(MobEffects.DAMAGE_BOOST)
+        );
+
+        if (thisOrUnderlyingPlayerHasEffect || target.hasEffect(ChangedAddonMobEffects.LATEX_EXPOSURE.get())) {
+            return super.tryAbsorbTarget(target, source, amount, possibleMobFusions);
+        }
         return false;
     }
 
@@ -92,14 +151,44 @@ public class WolfyEntity extends AbstractDarkLatexWolf implements VariantExtraSt
     }
 
     @Override
+    public boolean variantOverrideSwim() {
+        if (this.maybeGetUnderlying() instanceof Player player) {
+            TransfurVariantInstance<?> transfurVariant = ProcessTransfur.getPlayerTransfurVariant(player);
+            return transfurVariant != null && player.isEyeInFluid(FluidTags.LAVA);
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean variantOverrideSwimUpdate() {
+        if (this.maybeGetUnderlying() instanceof Player player) {
+            TransfurVariantInstance<?> transfurVariant = ProcessTransfur.getPlayerTransfurVariant(player);
+            return transfurVariant != null && player.isEyeInFluid(FluidTags.LAVA);
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean variantOverrideIsInWater() {
+        if (this.maybeGetUnderlying() instanceof Player player) {
+            TransfurVariantInstance<?> transfurVariant = ProcessTransfur.getPlayerTransfurVariant(player);
+            return transfurVariant != null && player.getLevel().getFluidState(player.blockPosition()).is(FluidTags.LAVA);
+        }
+
+        return false;
+    }
+
+    @Override
     public TransfurMode getTransfurMode() {
         return TransfurMode.NONE;
     }
 
-	/*@Override
-	public LatexType getLatexType() {
-		return LatexType.DARK_LATEX;
-	}*/
+    @Override
+    public boolean isAlliedTo(Entity entity) {
+        return super.isAlliedTo(entity);
+    }
 
     @Override
     public HairStyle getDefaultHairStyle() {
@@ -110,7 +199,6 @@ public class WolfyEntity extends AbstractDarkLatexWolf implements VariantExtraSt
         return HairStyle.Collection.getAll();
     }
 
-    @Override
     public Color3 getHairColor(int layer) {
         return Color3.DARK;
     }
@@ -126,19 +214,73 @@ public class WolfyEntity extends AbstractDarkLatexWolf implements VariantExtraSt
     }
 
     @Override
+    public boolean isAbleToGrab() {
+        return true;
+    }
+
+    @Override
+    public @Nullable GrabEntityAbilityInstance getGrabAbilityInstance() {
+        return this.grabEntityAbilityInstance;
+    }
+
+    @Override
+    public LivingEntity getGrabbedEntity() {
+        return this.grabEntityAbilityInstance != null ? this.grabEntityAbilityInstance.grabbedEntity : null;
+    }
+
+    @Override
+    public PathfinderMob asMob() {
+        return this;
+    }
+
+    @Override
     protected void registerGoals() {
         super.registerGoals();
-		/*this.goalSelector.addGoal(1, new MeleeAttackGoal(this, 1.2, false) {
-			@Override
-			protected double getAttackReachSqr(LivingEntity entity) {
-				return this.mob.getBbWidth() * this.mob.getBbWidth() + entity.getBbWidth();
-			}
-		});
-		this.goalSelector.addGoal(2, new RandomStrollGoal(this, 1));
-		this.targetSelector.addGoal(3, new HurtByTargetGoal(this));
-		this.goalSelector.addGoal(4, new RandomLookAroundGoal(this));
-		this.goalSelector.addGoal(5, new FloatGoal(this));*/
+        //this.goalSelector.addGoal(1, new GrabTargetGoal(this, 0.4f, false));
+        this.goalSelector.addGoal(10, new MayDropGrabbedEntityGoal(this));
+        this.goalSelector.addGoal(10, new MayGrabTargetGoal(this));
+    }
 
+    @Override
+    public void baseTick() {
+        super.baseTick();
+        if (grabEntityAbilityInstance != null && grabEntityAbilityInstance.grabbedEntity == null) {
+            if (grabCooldown > 0) this.grabCooldown--;
+        }
+        this.mayTickGrabAbility();
+    }
+
+    @Override
+    protected void actuallyHurt(DamageSource pDamageSource, float pDamageAmount) {
+        mayDropGrabbedEntity(pDamageSource, pDamageAmount);
+        super.actuallyHurt(pDamageSource, pDamageAmount);
+    }
+
+    @Override
+    public void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        this.saveGrabAbilityInTag(tag);
+    }
+
+    @Override
+    public void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        this.readGrabAbilityInTag(tag);
+    }
+
+    @Override
+    public <A extends AbstractAbilityInstance> A getAbilityInstance(AbstractAbility<A> ability) {
+        return (A) (this.grabEntityAbilityInstance != null && ability == this.grabEntityAbilityInstance.ability ? this.grabEntityAbilityInstance : super.getAbilityInstance(ability));
+    }
+
+    @Override
+    public int getGrabCooldown() {
+        return this.grabCooldown;
+    }
+
+    @Override
+    public void setGrabCooldown(int grabCooldown) {
+        this.grabCooldown = grabCooldown;
     }
 
     public Color3 getDripColor() {

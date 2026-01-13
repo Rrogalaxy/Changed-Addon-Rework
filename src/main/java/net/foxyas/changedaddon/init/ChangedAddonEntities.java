@@ -1,19 +1,21 @@
 package net.foxyas.changedaddon.init;
 
+import com.mojang.datafixers.util.Pair;
 import net.foxyas.changedaddon.ChangedAddonMod;
-import net.foxyas.changedaddon.entity.projectile.WitherParticleProjectile;
-import net.foxyas.changedaddon.entity.simple.PinkCyanSkunkEntity;
 import net.foxyas.changedaddon.entity.advanced.*;
 import net.foxyas.changedaddon.entity.bosses.*;
 import net.foxyas.changedaddon.entity.mobs.ErikEntity;
-import net.foxyas.changedaddon.entity.mobs.FoxyasEntity;
+import net.foxyas.changedaddon.entity.partials.SnowLeopardPartialEntity;
 import net.foxyas.changedaddon.entity.projectile.LuminarCrystalSpearEntity;
 import net.foxyas.changedaddon.entity.projectile.VoidFoxParticleProjectile;
+import net.foxyas.changedaddon.entity.projectile.WitherParticleProjectile;
 import net.foxyas.changedaddon.entity.simple.*;
 import net.ltxprogrammer.changed.init.ChangedMobCategories;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraftforge.data.loading.DatagenModLoader;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -23,23 +25,27 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.function.Supplier;
 
 @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
 public class ChangedAddonEntities {
 
+    // ========================================================== Datagen ========================================================== //
     /**
      * Todo: Make this Class Use HashMaps to make it registration more dynamic
      * example -> ATTRIBUTES.put(PROTOTYPE, PrototypeEntity::createAttributes);
      */
 
     public static @NotNull List<EntityType<?>> canUseAccessories() {
-        final List<EntityType<?>> ADDON_CHANGED_ENTITIES = getAddonHumanoidsChangedEntities();
-        ADDON_CHANGED_ENTITIES.remove(REYN.get());
-        ADDON_CHANGED_ENTITIES.remove(BUNY.get());
-        return ADDON_CHANGED_ENTITIES;
+        //final List<EntityType<?>> ADDON_CHANGED_ENTITIES = getAddonHumanoidsChangedEntities();
+        //ADDON_CHANGED_ENTITIES.remove(REYN.get());
+        //ADDON_CHANGED_ENTITIES.remove(BUNY.get());
+        return getAddonHumanoidsChangedEntities();
     }
 
     public static @NotNull List<EntityType<?>> canUseExoskeleton() {
@@ -50,91 +56,88 @@ public class ChangedAddonEntities {
 
     @Contract(" -> new")
     public static @NotNull List<EntityType<?>> getAddonHumanoidsChangedEntities() {
-        return new ArrayList<>(List.of(
-                // Snow foxes
-                LATEX_SNOW_FOX_MALE.get(),
-                LATEX_SNOW_FOX_FEMALE.get(),
-
-                // Foxes
-                FOXTA_FOXY.get(),
-                VOID_FOX.get(),
-                HAYDEN_FENNEC_FOX.get(),
-                LATEX_KITSUNE_MALE.get(),
-                LATEX_KITSUNE_FEMALE.get(),
-
-                // Leopards
-                SNOW_LEOPARD_FEMALE_ORGANIC.get(),
-                SNOW_LEOPARD_MALE_ORGANIC.get(),
-                SNOW_LEOPARD_PARTIAL.get(),
-                LUMINARCTIC_LEOPARD_MALE.get(),
-                LUMINARCTIC_LEOPARD_FEMALE.get(),
-                SNEPSI_LEOPARD.get(),
-
-                // Felines
-                MIRROR_WHITE_TIGER.get(),
-                LYNX.get(),
-                LATEX_WIND_CAT_MALE.get(),
-                LATEX_WIND_CAT_FEMALE.get(),
-                CRYSTAL_GAS_CAT_MALE.get(),
-                CRYSTAL_GAS_CAT_FEMALE.get(),
-                LATEX_CALICO_CAT.get(),
-                LATEX_CHEETAH_MALE.get(),
-                LATEX_CHEETAH_FEMALE.get(),
-
-                // Half/Partial Ones
-                SNOW_LEOPARD_PARTIAL.get(),
-
-                // Birds
-                AVALI.get(),
-
-                // Experiments
-                EXPERIMENT_009.get(),
-                EXPERIMENT_009_BOSS.get(),
-                EXPERIMENT_10.get(),
-                EXPERIMENT_10_BOSS.get(),
-                EXP_1_MALE.get(),
-                EXP_1_FEMALE.get(),
-                EXP_2_MALE.get(),
-                EXP_2_FEMALE.get(),
-                EXP_6.get(),
-
-                // Fusions
-                LATEX_SQUID_TIGER_SHARK.get(),
-                LATEX_DRAGON_SNOW_LEOPARD_SHARK.get(),
-
-                // Dragons
-                LUMINARA_FLOWER_BEAST.get(),
-
-                // Others...
-                REYN.get(),
-                DAZED_LATEX.get(),
-                PURO_KIND_MALE.get(),
-                PURO_KIND_FEMALE.get(),
-                BUNY.get(),
-                WOLFY.get(),
-                BAGEL.get(),
-                FENGQI_WOLF.get(),
-                BLUE_LIZARD.get(),
-                MONGOOSE.get(),
-                PINK_CYAN_SKUNK.get(),
-
-                // Protogens/Robot like
-                PROTOGEN.get(),
-                PROTOTYPE.get(),
-                BOREALIS_MALE.get(),
-                BOREALIS_FEMALE.get()
-
-        ));
+        ArrayList<EntityType<?>> entityTypes = new ArrayList<>();
+        LatexEntitiesThatCanUseAccessories.stream().map(Supplier::get)
+                .sorted(Comparator.comparing(entityType -> entityType.getRegistryName().getPath()))
+                .forEach(entityTypes::add);
+        return entityTypes;
     }
+
+    public static final List<Supplier<EntityType<?>>> LatexEntities;
+    public static final List<Supplier<EntityType<?>>> LatexEntitiesThatCanUseAccessories;
+    public static final List<Pair<Supplier<EntityType<?>>, Supplier<LootTable.Builder>>> EntitiesWithLoot;
+
+    static {
+        if(DatagenModLoader.isRunningDataGen()){
+            LatexEntities = new ArrayList<>();
+            LatexEntitiesThatCanUseAccessories = new ArrayList<>();
+            EntitiesWithLoot = new ArrayList<>();
+        } else {
+            LatexEntities = null;
+            LatexEntitiesThatCanUseAccessories = null;
+            EntitiesWithLoot = null;
+        }
+    }
+    // ========================================================== /Datagen ========================================================= //
 
     //Todo: Make this Class a bit less Chaotic
     public static final DeferredRegister<EntityType<?>> REGISTRY = DeferredRegister.create(ForgeRegistries.ENTITIES, ChangedAddonMod.MODID);
 
+    /// Latex Changed Entity Registers
     private static <T extends Entity> RegistryObject<EntityType<T>> registerChangedEntity(String registryName, EntityType.Builder<T> entityTypeBuilder) {
+        return registerChangedEntity(registryName, entityTypeBuilder, true, true);
+    }
+
+    private static <T extends Entity> RegistryObject<EntityType<T>> registerChangedEntity(String registryName, EntityType.Builder<T> entityTypeBuilder, boolean canUseAccessories) {
+        return registerChangedEntity(registryName, entityTypeBuilder, true, canUseAccessories);
+    }
+
+    private static <T extends Entity> RegistryObject<EntityType<T>> registerChangedEntityWithLoot(String registryName, EntityType.Builder<T> entityTypeBuilder, Supplier<LootTable.Builder> lootDataBuilder) {
+        return registerChangedEntityWithLoot(registryName, entityTypeBuilder, true, true, lootDataBuilder);
+    }
+
+    private static <T extends Entity> RegistryObject<EntityType<T>> registerChangedEntityWithLoot(String registryName, EntityType.Builder<T> entityTypeBuilder, boolean canUseAccessories, Supplier<LootTable.Builder> lootDataBuilder) {
+        return registerChangedEntityWithLoot(registryName, entityTypeBuilder, true, canUseAccessories, lootDataBuilder);
+    }
+
+    /// Non Latex Changed Entity Registers
+    private static <T extends Entity> RegistryObject<EntityType<T>> registerOrganicChangedEntity(String registryName, EntityType.Builder<T> entityTypeBuilder) {
+        return registerChangedEntity(registryName, entityTypeBuilder, false, true);
+    }
+
+    private static <T extends Entity> RegistryObject<EntityType<T>> registerOrganicChangedEntity(String registryName, EntityType.Builder<T> entityTypeBuilder, boolean canUseAccessories) {
+        return registerChangedEntity(registryName, entityTypeBuilder, false, canUseAccessories);
+    }
+
+    private static <T extends Entity> RegistryObject<EntityType<T>> registerOrganicChangedEntityWithLoot(String registryName, EntityType.Builder<T> entityTypeBuilder, Supplier<LootTable.Builder> lootDataBuilder) {
+        return registerChangedEntityWithLoot(registryName, entityTypeBuilder, false, true, lootDataBuilder);
+    }
+
+    private static <T extends Entity> RegistryObject<EntityType<T>> registerOrganicChangedEntityWithLoot(String registryName, EntityType.Builder<T> entityTypeBuilder, boolean canUseAccessories, Supplier<LootTable.Builder> lootDataBuilder) {
+        return registerChangedEntityWithLoot(registryName, entityTypeBuilder, false, canUseAccessories, lootDataBuilder);
+    }
+
+    /// Generic/Manual Changed Entity Registers
+    private static <T extends Entity> RegistryObject<EntityType<T>> registerChangedEntity(String registryName, EntityType.Builder<T> entityTypeBuilder, boolean latex, boolean canUseAccessories) {
+        return registerChangedEntityWithLoot(registryName, entityTypeBuilder, latex, canUseAccessories, null);
+    }
+
+    private static <T extends Entity> RegistryObject<EntityType<T>> registerChangedEntityWithLoot(String registryName, EntityType.Builder<T> entityTypeBuilder, boolean latex, boolean canUseAccessories, @Nullable Supplier<LootTable.Builder> lootDataBuilder) {
+        RegistryObject<EntityType<T>> register = REGISTRY.register(registryName, () -> entityTypeBuilder.build(registryName));
+        if(DatagenModLoader.isRunningDataGen()){
+            if (latex) LatexEntities.add(register::get);
+            if (canUseAccessories) LatexEntitiesThatCanUseAccessories.add(register::get);
+            if (lootDataBuilder != null) EntitiesWithLoot.add(Pair.of(register::get, lootDataBuilder));
+        }
+        return register;
+    }
+
+    // Basic Registers
+    private static <T extends Entity> RegistryObject<EntityType<T>> register(String registryName, EntityType.Builder<T> entityTypeBuilder) {
         return REGISTRY.register(registryName, () -> entityTypeBuilder.build(registryName));
     }
 
-    private static <T extends Entity> RegistryObject<EntityType<T>> register(String registryName, EntityType.Builder<T> entityTypeBuilder) {
+    private static <T extends Entity> RegistryObject<EntityType<T>> registerMob(String registryName, EntityType.Builder<T> entityTypeBuilder) {
         return REGISTRY.register(registryName, () -> entityTypeBuilder.build(registryName));
     }
 
@@ -174,10 +177,6 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(LatexSnowFoxMaleEntity::new)
                     .sized(0.7f, 1.93f));
 
-    private static <T extends Entity> RegistryObject<EntityType<T>> registerMob(String registryName, EntityType.Builder<T> entityTypeBuilder) {
-        return REGISTRY.register(registryName, () -> entityTypeBuilder.build(registryName));
-    }
-
     public static final RegistryObject<EntityType<LatexSnowFoxFemaleEntity>> LATEX_SNOW_FOX_FEMALE = registerChangedEntity("latex_snow_fox_female",
             EntityType.Builder.<LatexSnowFoxFemaleEntity>of(LatexSnowFoxFemaleEntity::new, MobCategory.MONSTER)
                     .setShouldReceiveVelocityUpdates(true)
@@ -211,14 +210,6 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(PuroKindFemaleEntity::new)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<BunyEntity>> BUNY = registerChangedEntity("buny",
-            EntityType.Builder.<BunyEntity>of(BunyEntity::new, MobCategory.MONSTER)
-                    .setShouldReceiveVelocityUpdates(true)
-                    .setTrackingRange(64)
-                    .setUpdateInterval(3)
-                    .setCustomClientFactory(BunyEntity::new)
-                    .sized(0.7f, 1.93f));
-
     public static final RegistryObject<EntityType<SnowLeopardFemaleOrganicEntity>> SNOW_LEOPARD_FEMALE_ORGANIC = registerChangedEntity("snow_leopard_female_organic",
             EntityType.Builder.<SnowLeopardFemaleOrganicEntity>of(SnowLeopardFemaleOrganicEntity::new, MobCategory.MONSTER)
                     .setShouldReceiveVelocityUpdates(true)
@@ -235,12 +226,28 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(SnowLeopardMaleOrganicEntity::new)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<MirrorWhiteTigerEntity>> MIRROR_WHITE_TIGER = registerChangedEntity("mirror_white_tiger",
+    public static final RegistryObject<EntityType<MirrorWhiteTigerEntity>> MIRROR_WHITE_TIGER = registerOrganicChangedEntity("mirror_white_tiger",
             EntityType.Builder.<MirrorWhiteTigerEntity>of(MirrorWhiteTigerEntity::new, MobCategory.MONSTER)
                     .setShouldReceiveVelocityUpdates(true)
                     .setTrackingRange(64)
                     .setUpdateInterval(3)
                     .setCustomClientFactory(MirrorWhiteTigerEntity::new)
+                    .sized(0.7f, 1.93f));
+
+    public static final RegistryObject<EntityType<Exp1MaleEntity>> EXP_1_MALE = registerChangedEntity("exp_1_male",
+            EntityType.Builder.<Exp1MaleEntity>of(Exp1MaleEntity::new, MobCategory.MONSTER)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(Exp1MaleEntity::new)
+                    .sized(0.7f, 1.93f));
+
+    public static final RegistryObject<EntityType<Exp1FemaleEntity>> EXP_1_FEMALE = registerChangedEntity("exp_1_female",
+            EntityType.Builder.<Exp1FemaleEntity>of(Exp1FemaleEntity::new, MobCategory.MONSTER)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(Exp1FemaleEntity::new)
                     .sized(0.7f, 1.93f));
 
     public static final RegistryObject<EntityType<Exp2MaleEntity>> EXP_2_MALE = registerChangedEntity("exp_2_male",
@@ -259,15 +266,6 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(Exp2FemaleEntity::new)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<WolfyEntity>> WOLFY = registerChangedEntity("wolfy",
-            EntityType.Builder.<WolfyEntity>of(WolfyEntity::new, MobCategory.MONSTER)
-                    .setShouldReceiveVelocityUpdates(true)
-                    .setTrackingRange(64)
-                    .setUpdateInterval(3)
-                    .setCustomClientFactory(WolfyEntity::new)
-                    .fireImmune()
-                    .sized(0.7f, 1.93f));
-
     public static final RegistryObject<EntityType<Exp6Entity>> EXP_6 = registerChangedEntity("exp_6",
             EntityType.Builder.<Exp6Entity>of(Exp6Entity::new, MobCategory.MONSTER)
                     .setShouldReceiveVelocityUpdates(true)
@@ -276,21 +274,14 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(Exp6Entity::new)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<ReynEntity>> REYN = registerChangedEntity("reyn",
-            EntityType.Builder.<ReynEntity>of(ReynEntity::new, MobCategory.MONSTER)
+    public static final RegistryObject<EntityType<Experiment009Entity>> EXPERIMENT_009 = registerChangedEntity("experiment_009",
+            EntityType.Builder.<Experiment009Entity>of(Experiment009Entity::new, MobCategory.MONSTER)
                     .setShouldReceiveVelocityUpdates(true)
                     .setTrackingRange(64)
                     .setUpdateInterval(3)
-                    .setCustomClientFactory(ReynEntity::new)
+                    .setCustomClientFactory(Experiment009Entity::new)
+                    .fireImmune()
                     .sized(0.7f, 1.93f));
-
-    public static final RegistryObject<EntityType<Experiment009Entity>> EXPERIMENT_009 = registerChangedEntity("experiment_009", EntityType.Builder.<Experiment009Entity>of(Experiment009Entity::new, MobCategory.MONSTER)
-            .setShouldReceiveVelocityUpdates(true)
-            .setTrackingRange(64)
-            .setUpdateInterval(3)
-            .setCustomClientFactory(Experiment009Entity::new)
-            .fireImmune()
-            .sized(0.7f, 1.93f));
 
     public static final RegistryObject<EntityType<Experiment009BossEntity>> EXPERIMENT_009_BOSS = registerChangedEntity("experiment_009_boss",
             EntityType.Builder.<Experiment009BossEntity>of(Experiment009BossEntity::new, MobCategory.MONSTER)
@@ -317,29 +308,13 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(Experiment10BossEntity::new)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<Exp1MaleEntity>> EXP_1_MALE = registerChangedEntity("exp_1_male",
-            EntityType.Builder.<Exp1MaleEntity>of(Exp1MaleEntity::new, MobCategory.MONSTER)
-                    .setShouldReceiveVelocityUpdates(true)
-                    .setTrackingRange(64)
-                    .setUpdateInterval(3)
-                    .setCustomClientFactory(Exp1MaleEntity::new)
-                    .sized(0.7f, 1.93f));
-
-    public static final RegistryObject<EntityType<Exp1FemaleEntity>> EXP_1_FEMALE = registerChangedEntity("exp_1_female",
-            EntityType.Builder.<Exp1FemaleEntity>of(Exp1FemaleEntity::new, MobCategory.MONSTER)
-                    .setShouldReceiveVelocityUpdates(true)
-                    .setTrackingRange(64)
-                    .setUpdateInterval(3)
-                    .setCustomClientFactory(Exp1FemaleEntity::new)
-                    .sized(0.7f, 1.93f));
-
     public static final RegistryObject<EntityType<LatexSnepEntity>> LATEX_SNEP = registerChangedEntity("latex_snep",
             EntityType.Builder.<LatexSnepEntity>of(LatexSnepEntity::new, MobCategory.MONSTER)
                     .setShouldReceiveVelocityUpdates(true)
                     .setTrackingRange(64)
                     .setUpdateInterval(3)
                     .setCustomClientFactory(LatexSnepEntity::new)
-                    .sized(0.6f, 0.7f));
+                    .sized(0.6f, 0.7f), false);
 
     public static final RegistryObject<EntityType<LuminarcticLeopardMaleEntity>> LUMINARCTIC_LEOPARD_MALE = registerChangedEntity("luminarctic_leopard_male",
             EntityType.Builder.<LuminarcticLeopardMaleEntity>of(LuminarcticLeopardMaleEntity::new, MobCategory.MONSTER)
@@ -373,7 +348,7 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(LynxEntity::new)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<FoxtaFoxyEntity>> FOXTA_FOXY = registerChangedEntity("foxta_foxy",
+    public static final RegistryObject<EntityType<FoxtaFoxyEntity>> FOXTA_FOXY = registerOrganicChangedEntity("foxta_foxy",
             EntityType.Builder.<FoxtaFoxyEntity>of(FoxtaFoxyEntity::new, MobCategory.MONSTER)
                     .setShouldReceiveVelocityUpdates(true)
                     .setTrackingRange(64)
@@ -381,20 +356,12 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(FoxtaFoxyEntity::new)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<SnepsiLeopardEntity>> SNEPSI_LEOPARD = registerChangedEntity("snepsi_leopard",
+    public static final RegistryObject<EntityType<SnepsiLeopardEntity>> SNEPSI_LEOPARD = registerOrganicChangedEntity("snepsi_leopard",
             EntityType.Builder.<SnepsiLeopardEntity>of(SnepsiLeopardEntity::new, MobCategory.MONSTER)
                     .setShouldReceiveVelocityUpdates(true)
                     .setTrackingRange(64)
                     .setUpdateInterval(3)
                     .setCustomClientFactory(SnepsiLeopardEntity::new)
-                    .sized(0.7f, 1.93f));
-
-    public static final RegistryObject<EntityType<BagelEntity>> BAGEL = registerChangedEntity("bagel",
-            EntityType.Builder.<BagelEntity>of(BagelEntity::new, MobCategory.MONSTER)
-                    .setShouldReceiveVelocityUpdates(true)
-                    .setTrackingRange(64)
-                    .setUpdateInterval(3)
-                    .setCustomClientFactory(BagelEntity::new)
                     .sized(0.7f, 1.93f));
 
     public static final RegistryObject<EntityType<LatexDragonSnowLeopardSharkEntity>> LATEX_DRAGON_SNOW_LEOPARD_SHARK = registerChangedEntity("latex_dragon_snow_leopard_shark",
@@ -429,7 +396,7 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(VoidFoxEntity::new)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<FengQIWolfEntity>> FENGQI_WOLF = registerChangedEntity("fengqi_wolf",
+    public static final RegistryObject<EntityType<FengQIWolfEntity>> FENGQI_WOLF = registerOrganicChangedEntity("fengqi_wolf",
             EntityType.Builder.<FengQIWolfEntity>of(FengQIWolfEntity::new, MobCategory.MONSTER)
                     .setShouldReceiveVelocityUpdates(true)
                     .setTrackingRange(64)
@@ -437,7 +404,7 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(FengQIWolfEntity::new)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<HaydenFennecFoxEntity>> HAYDEN_FENNEC_FOX = registerChangedEntity("hayden_fennec_fox",
+    public static final RegistryObject<EntityType<HaydenFennecFoxEntity>> HAYDEN_FENNEC_FOX = registerOrganicChangedEntity("hayden_fennec_fox",
             EntityType.Builder.<HaydenFennecFoxEntity>of(HaydenFennecFoxEntity::new, MobCategory.MONSTER)
                     .setShouldReceiveVelocityUpdates(true)
                     .setTrackingRange(64)
@@ -453,21 +420,21 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(SnowLeopardPartialEntity::new)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<BlueLizard>> BLUE_LIZARD = registerChangedEntity("blue_lizard",
-            EntityType.Builder.<BlueLizard>of(BlueLizard::new, ChangedMobCategories.CHANGED)
-                    .setShouldReceiveVelocityUpdates(true)
-                    .setTrackingRange(64)
-                    .setUpdateInterval(3)
-                    .setCustomClientFactory(BlueLizard::new)
-                    .clientTrackingRange(10)
-                    .sized(0.7f, 1.93f));
-
-    public static final RegistryObject<EntityType<AvaliEntity>> AVALI = registerChangedEntity("avali",
+    public static final RegistryObject<EntityType<AvaliEntity>> AVALI = registerOrganicChangedEntity("avali",
             EntityType.Builder.<AvaliEntity>of(AvaliEntity::new, ChangedMobCategories.CHANGED)
                     .setShouldReceiveVelocityUpdates(true)
                     .setTrackingRange(64)
                     .setUpdateInterval(3)
                     .setCustomClientFactory(AvaliEntity::new)
+                    .clientTrackingRange(10)
+                    .sized(0.7f, 1.93f));
+
+    public static final RegistryObject<EntityType<AvaliZerGodMasterEntity>> AVALI_ZERGODMASTER = registerChangedEntity("avali_zergodmaster",
+            EntityType.Builder.<AvaliZerGodMasterEntity>of(AvaliZerGodMasterEntity::new, ChangedMobCategories.CHANGED)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(AvaliZerGodMasterEntity::new)
                     .clientTrackingRange(10)
                     .sized(0.7f, 1.93f));
 
@@ -499,7 +466,7 @@ public class ChangedAddonEntities {
                     .clientTrackingRange(10)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<ProtogenEntity>> PROTOGEN = registerChangedEntity("protogen",
+    public static final RegistryObject<EntityType<ProtogenEntity>> PROTOGEN = registerOrganicChangedEntity("protogen",
             EntityType.Builder.<ProtogenEntity>of(ProtogenEntity::new, ChangedMobCategories.CHANGED)
                     .setShouldReceiveVelocityUpdates(true)
                     .setTrackingRange(64)
@@ -508,7 +475,7 @@ public class ChangedAddonEntities {
                     .clientTrackingRange(10)
                     .sized(0.7f, 1.93f));
 
-    public static final RegistryObject<EntityType<MongooseEntity>> MONGOOSE = registerChangedEntity("mongoose",
+    public static final RegistryObject<EntityType<MongooseEntity>> MONGOOSE = registerOrganicChangedEntity("mongoose",
             EntityType.Builder.<MongooseEntity>of(MongooseEntity::new, ChangedMobCategories.CHANGED)
                     .setShouldReceiveVelocityUpdates(true)
                     .setTrackingRange(64)
@@ -516,54 +483,6 @@ public class ChangedAddonEntities {
                     .setCustomClientFactory(MongooseEntity::new)
                     .clientTrackingRange(10)
                     .sized(0.7f, 1.93f));
-
-    public static final RegistryObject<EntityType<BorealisMaleEntity>> BOREALIS_MALE = registerChangedEntity("borealis_male",
-            EntityType.Builder.<BorealisMaleEntity>of(BorealisMaleEntity::new, ChangedMobCategories.CHANGED)
-                    .setShouldReceiveVelocityUpdates(true)
-                    .setTrackingRange(64)
-                    .setUpdateInterval(3)
-                    .setCustomClientFactory(BorealisMaleEntity::new)
-                    .clientTrackingRange(10)
-                    .sized(0.7f, 1.93f));
-
-    public static final RegistryObject<EntityType<BorealisFemaleEntity>> BOREALIS_FEMALE = registerChangedEntity("borealis_female",
-            EntityType.Builder.<BorealisFemaleEntity>of(BorealisFemaleEntity::new, ChangedMobCategories.CHANGED)
-                    .setShouldReceiveVelocityUpdates(true)
-                    .setTrackingRange(64)
-                    .setUpdateInterval(3)
-                    .setCustomClientFactory(BorealisFemaleEntity::new)
-                    .clientTrackingRange(10)
-                    .sized(0.7f, 1.93f));
-
-    // --- MONSTER/MOB ENTITIES ---
-    public static final RegistryObject<EntityType<PrototypeEntity>> PROTOTYPE = registerMob("prototype",
-            EntityType.Builder.<PrototypeEntity>of(PrototypeEntity::new, ChangedMobCategories.CHANGED)
-                    .setShouldReceiveVelocityUpdates(true)
-                    .setTrackingRange(64)
-                    .setUpdateInterval(3)
-                    .setCustomClientFactory(PrototypeEntity::new)
-                    .sized(0.7f, 1.93f));
-
-    public static final RegistryObject<EntityType<FoxyasEntity>> FOXYAS = registerMob("foxyas",
-            EntityType.Builder.<FoxyasEntity>of(FoxyasEntity::new, MobCategory.MONSTER)
-                    .setShouldReceiveVelocityUpdates(true)
-                    .setTrackingRange(64)
-                    .setUpdateInterval(3)
-                    .setCustomClientFactory(FoxyasEntity::new)
-                    .sized(0.7f, 1.9f));
-
-    public static final RegistryObject<EntityType<ErikEntity>> ERIK = registerChangedEntity("erik",
-            EntityType.Builder.<ErikEntity>of(ErikEntity::new, MobCategory.MONSTER)
-                    .setShouldReceiveVelocityUpdates(true)
-                    .setTrackingRange(64)
-                    .setUpdateInterval(3)
-                    .setCustomClientFactory(ErikEntity::new)
-                    .sized(0.6f, 1.8f));
-
-    public static final RegistryObject<EntityType<PinkCyanSkunkEntity>> PINK_CYAN_SKUNK = registerChangedEntity("pink_cyan_skunk",
-            EntityType.Builder.of(PinkCyanSkunkEntity::new, ChangedMobCategories.CHANGED)
-                    .clientTrackingRange(10)
-                    .sized(0.7F, 1.93F));
 
     public static final RegistryObject<EntityType<LatexWindCatMaleEntity>> LATEX_WIND_CAT_MALE = registerChangedEntity("latex_wind_cat_male",
             EntityType.Builder.of(LatexWindCatMaleEntity::new, ChangedMobCategories.CHANGED)
@@ -595,15 +514,133 @@ public class ChangedAddonEntities {
                     .clientTrackingRange(10)
                     .sized(0.7F, 1.93F));
 
-    public static final RegistryObject<EntityType<LuminaraFlowerBeastEntity>> LUMINARA_FLOWER_BEAST = registerChangedEntity("luminara_flower_beast",
+    public static final RegistryObject<EntityType<LuminaraFlowerBeastEntity>> LUMINARA_FLOWER_BEAST = registerOrganicChangedEntity("luminara_flower_beast",
             EntityType.Builder.<LuminaraFlowerBeastEntity>of(LuminaraFlowerBeastEntity::new, ChangedMobCategories.CHANGED)
                     .clientTrackingRange(10)
                     .sized(0.7F, 1.93F));
 
+    /// OCs
+
+    public static final RegistryObject<EntityType<BorealisMaleEntity>> BOREALIS_MALE = registerOrganicChangedEntity("borealis_male",
+            EntityType.Builder.<BorealisMaleEntity>of(BorealisMaleEntity::new, ChangedMobCategories.CHANGED)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(BorealisMaleEntity::new)
+                    .clientTrackingRange(10)
+                    .sized(0.7f, 1.93f));
+
+    public static final RegistryObject<EntityType<BorealisFemaleEntity>> BOREALIS_FEMALE = registerOrganicChangedEntity("borealis_female",
+            EntityType.Builder.<BorealisFemaleEntity>of(BorealisFemaleEntity::new, ChangedMobCategories.CHANGED)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(BorealisFemaleEntity::new)
+                    .clientTrackingRange(10)
+                    .sized(0.7f, 1.93f));
+
+    public static final RegistryObject<EntityType<BlueLizard>> BLUE_LIZARD = registerOrganicChangedEntity("blue_lizard",
+            EntityType.Builder.<BlueLizard>of(BlueLizard::new, ChangedMobCategories.CHANGED)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(BlueLizard::new)
+                    .clientTrackingRange(10)
+                    .sized(0.7f, 1.93f));
+
+    public static final RegistryObject<EntityType<BagelEntity>> BAGEL = registerOrganicChangedEntity("bagel",
+            EntityType.Builder.<BagelEntity>of(BagelEntity::new, MobCategory.MONSTER)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(BagelEntity::new)
+                    .sized(0.7f, 1.93f));
+
+    public static final RegistryObject<EntityType<BunyEntity>> BUNY = registerOrganicChangedEntity("buny",
+            EntityType.Builder.<BunyEntity>of(BunyEntity::new, MobCategory.MONSTER)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(BunyEntity::new)
+                    .sized(0.7f, 1.93f), false);
+
+    public static final RegistryObject<EntityType<WolfyEntity>> WOLFY = registerChangedEntity("wolfy",
+            EntityType.Builder.<WolfyEntity>of(WolfyEntity::new, MobCategory.MONSTER)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(WolfyEntity::new)
+                    .fireImmune()
+                    .sized(0.7f, 1.93f));
+
+    public static final RegistryObject<EntityType<ReynEntity>> REYN = registerOrganicChangedEntity("reyn",
+            EntityType.Builder.<ReynEntity>of(ReynEntity::new, MobCategory.MONSTER)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(ReynEntity::new)
+                    .sized(0.7f, 1.93f), false);
+
+    public static final RegistryObject<EntityType<PinkCyanSkunkEntity>> PINK_CYAN_SKUNK = registerOrganicChangedEntity("pink_cyan_skunk",
+            EntityType.Builder.of(PinkCyanSkunkEntity::new, ChangedMobCategories.CHANGED)
+                    .clientTrackingRange(10)
+                    .sized(0.7F, 1.93F));
+
+    public static final RegistryObject<EntityType<Protogen0senia0Entity>> PROTOGEN_0SENIA0 = registerOrganicChangedEntity("protogen_0senia0",
+            EntityType.Builder.<Protogen0senia0Entity>of(Protogen0senia0Entity::new, ChangedMobCategories.CHANGED)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(Protogen0senia0Entity::new)
+                    .clientTrackingRange(10)
+                    .sized(0.7f, 1.93f));
+
+    public static final RegistryObject<EntityType<LatexKaylaSharkEntity>> LATEX_KAYLA_SHARK = registerChangedEntityWithLoot("latex_kayla_shark",
+            EntityType.Builder.<LatexKaylaSharkEntity>of(LatexKaylaSharkEntity::new, ChangedMobCategories.CHANGED)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(LatexKaylaSharkEntity::new)
+                    .sized(0.7f, 1.93f), LatexKaylaSharkEntity::getLoot
+    );
+
+    public static final RegistryObject<EntityType<PrototypeEntity>> PROTOTYPE = registerOrganicChangedEntity("prototype",
+            EntityType.Builder.of(PrototypeEntity::new, ChangedMobCategories.CHANGED)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .sized(0.7f, 1.93f));
+
+    public static final RegistryObject<EntityType<LatexSnowFoxFoxyasEntity>> LATEX_SNOW_FOX_FOXYAS = registerChangedEntity("latex_snow_fox_foxyas",
+            EntityType.Builder.<LatexSnowFoxFoxyasEntity>of(LatexSnowFoxFoxyasEntity::new, ChangedMobCategories.CHANGED)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(LatexSnowFoxFoxyasEntity::new)
+                    .sized(0.7f, 1.93f));
+
+
+    public static final RegistryObject<EntityType<LatexBorderCollieEntity>> LATEX_BORDER_COLLIE = registerChangedEntity("latex_border_collie",
+            EntityType.Builder.<LatexBorderCollieEntity>of(LatexBorderCollieEntity::new, ChangedMobCategories.CHANGED)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(LatexBorderCollieEntity::new)
+                    .sized(0.7f, 1.93f));
+
+    // --- MONSTER/MOB ENTITIES ---
+    public static final RegistryObject<EntityType<ErikEntity>> ERIK = registerMob("erik",
+            EntityType.Builder.<ErikEntity>of(ErikEntity::new, MobCategory.MONSTER)
+                    .setShouldReceiveVelocityUpdates(true)
+                    .setTrackingRange(64)
+                    .setUpdateInterval(3)
+                    .setCustomClientFactory(ErikEntity::new)
+                    .sized(0.6f, 1.8f));
+
     @SubscribeEvent
     public static void registerAttributes(@NotNull EntityAttributeCreationEvent event) {
         event.put(PROTOTYPE.get(), PrototypeEntity.createAttributes().build());
-        event.put(FOXYAS.get(), FoxyasEntity.createAttributes().build());
+        event.put(LATEX_SNOW_FOX_FOXYAS.get(), LatexSnowFoxFoxyasEntity.createAttributes().build());
         event.put(LATEX_SNOW_FOX_MALE.get(), LatexSnowFoxMaleEntity.createAttributes().build());
         event.put(LATEX_SNOW_FOX_FEMALE.get(), LatexSnowFoxFemaleEntity.createAttributes().build());
         event.put(DAZED_LATEX.get(), DazedLatexEntity.createAttributes().build());
@@ -642,6 +679,7 @@ public class ChangedAddonEntities {
         event.put(SNOW_LEOPARD_PARTIAL.get(), SnowLeopardPartialEntity.createAttributes().build());
         event.put(BLUE_LIZARD.get(), BlueLizard.createAttributes().build());
         event.put(AVALI.get(), AvaliEntity.createAttributes().build());
+        event.put(AVALI_ZERGODMASTER.get(), AvaliEntity.createAttributes().build());
         event.put(LATEX_KITSUNE_MALE.get(), LatexKitsuneMaleEntity.createAttributes().build());
         event.put(LATEX_KITSUNE_FEMALE.get(), LatexKitsuneFemaleEntity.createAttributes().build());
         event.put(LATEX_CALICO_CAT.get(), LatexCalicoCatEntity.createAttributes().build());
@@ -657,13 +695,16 @@ public class ChangedAddonEntities {
         event.put(LATEX_CHEETAH_MALE.get(), LatexCheetahMale.createLatexAttributes().build());
         event.put(LATEX_CHEETAH_FEMALE.get(), LatexCheetahFemale.createLatexAttributes().build());
         event.put(LUMINARA_FLOWER_BEAST.get(), LuminaraFlowerBeastEntity.createAttributes().build());
+        event.put(PROTOGEN_0SENIA0.get(), Protogen0senia0Entity.createAttributes().build());
+        event.put(LATEX_KAYLA_SHARK.get(), LatexKaylaSharkEntity.createLatexAttributes().build());
+        event.put(LATEX_BORDER_COLLIE.get(), LatexBorderCollieEntity.createLatexAttributes().build());
     }
 
     @SubscribeEvent
     public static void init(@NotNull FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
             PrototypeEntity.init();
-            FoxyasEntity.init();
+            LatexSnowFoxFoxyasEntity.init();
             LatexSnowFoxMaleEntity.init();
             LatexSnowFoxFemaleEntity.init();
             DazedLatexEntity.init();
@@ -717,6 +758,8 @@ public class ChangedAddonEntities {
             LuminaraFlowerBeastEntity.init();
             LatexCheetahFemale.init();
             LatexCheetahMale.init();
+            Protogen0senia0Entity.init();
+            LatexBorderCollieEntity.init();
         });
     }
 

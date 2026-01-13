@@ -1,7 +1,7 @@
 package net.foxyas.changedaddon.item;
 
 import net.foxyas.changedaddon.init.ChangedAddonTabs;
-import net.foxyas.changedaddon.procedures.AddTransfurProgressProcedure;
+import net.foxyas.changedaddon.procedure.AddTransfurProgressProcedure;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -36,7 +36,7 @@ public class CrystalAddagerRedItem extends SwordItem {
             public @NotNull Ingredient getRepairIngredient() {
                 return Ingredient.of();
             }
-        }, 3, -2.4f, new Item.Properties().tab(ChangedAddonTabs.TAB_CHANGED_ADDON));
+        }, 3, -2.4f, new Item.Properties().tab(ChangedAddonTabs.CHANGED_ADDON_MAIN_TAB));
     }
 
     @Override

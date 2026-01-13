@@ -4,7 +4,6 @@ import net.foxyas.changedaddon.init.ChangedAddonItems;
 import net.foxyas.changedaddon.init.ChangedAddonTabs;
 import net.ltxprogrammer.changed.init.ChangedBlocks;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -17,22 +16,19 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ShovelItem;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.AirBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.Tags;
-import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 @Mod.EventBusSubscriber
 public class OpenedCannedSoupItem extends AbstractCanItem {
+
     public OpenedCannedSoupItem() {
-        super(new Properties().tab(ChangedAddonTabs.TAB_CHANGED_ADDON)
+        super(new Properties().tab(ChangedAddonTabs.CHANGED_ADDON_MAIN_TAB)
                 .food(new FoodProperties.Builder().nutrition(6).saturationMod(0.6F).alwaysEat().build()));
     }
 
@@ -40,7 +36,9 @@ public class OpenedCannedSoupItem extends AbstractCanItem {
     public @NotNull InteractionResultHolder<ItemStack> use(@NotNull Level pLevel, @NotNull Player pPlayer, @NotNull InteractionHand pUsedHand) {
         if (pPlayer.isShiftKeyDown()) {
             ItemStack itemStack = pPlayer.getItemInHand(pUsedHand);
-            itemStack.shrink(1);
+            if (!pPlayer.getAbilities().instabuild) {
+                itemStack.shrink(1);
+            }
             ItemStack closedCan = new ItemStack(ChangedBlocks.CANNED_SOUP.get().asItem(), 1);
             pPlayer.swing(pUsedHand);
             if (!pPlayer.addItem(closedCan)) {
@@ -119,8 +117,6 @@ public class OpenedCannedSoupItem extends AbstractCanItem {
                             return;
                         }
                         event.setCanceled(true);
-                        //world.addDestroyBlockEffect(blockPos, state);
-                        //world.setBlocksDirty(blockPos, state, Blocks.AIR.defaultBlockState());
                         world.setBlock(blockPos , Blocks.AIR.defaultBlockState(), 3);
                         world.levelEvent(player, 2001, blockPos, Block.getId(state));
                         Block.popResource(world, blockPos, new ItemStack(ChangedAddonItems.EMPTY_CAN.get()));

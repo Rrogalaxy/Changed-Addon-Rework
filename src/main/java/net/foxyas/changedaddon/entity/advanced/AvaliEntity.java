@@ -2,7 +2,7 @@ package net.foxyas.changedaddon.entity.advanced;
 
 import net.foxyas.changedaddon.entity.defaults.AbstractBasicOrganicChangedEntity;
 import net.foxyas.changedaddon.init.ChangedAddonEntities;
-import net.foxyas.changedaddon.variants.VariantExtraStats;
+import net.foxyas.changedaddon.variant.VariantExtraStats;
 import net.ltxprogrammer.changed.entity.ChangedEntity;
 import net.ltxprogrammer.changed.init.ChangedAttributes;
 import net.ltxprogrammer.changed.util.Color3;
@@ -28,20 +28,23 @@ import java.util.Set;
 
 public class AvaliEntity extends AbstractBasicOrganicChangedEntity implements VariantExtraStats {
 
-    private static final EntityDataAccessor<Integer> PRIMARY_COLOR = SynchedEntityData.defineId(AvaliEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> SECONDARY_COLOR = SynchedEntityData.defineId(AvaliEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> STRIPES_COLOR = SynchedEntityData.defineId(AvaliEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Float> SIZE_SCALE = SynchedEntityData.defineId(AvaliEntity.class, EntityDataSerializers.FLOAT);
-    private static final EntityDataAccessor<String> STYLE_OF_COLOR = SynchedEntityData.defineId(AvaliEntity.class, EntityDataSerializers.STRING);
+    protected static final EntityDataAccessor<Integer> PRIMARY_COLOR = SynchedEntityData.defineId(AvaliEntity.class, EntityDataSerializers.INT);
+    protected static final EntityDataAccessor<Integer> SECONDARY_COLOR = SynchedEntityData.defineId(AvaliEntity.class, EntityDataSerializers.INT);
+    protected static final EntityDataAccessor<Integer> STRIPES_COLOR = SynchedEntityData.defineId(AvaliEntity.class, EntityDataSerializers.INT);
+    protected static final EntityDataAccessor<Float> SIZE_SCALE = SynchedEntityData.defineId(AvaliEntity.class, EntityDataSerializers.FLOAT);
+    protected static final EntityDataAccessor<String> STYLE_OF_COLOR = SynchedEntityData.defineId(AvaliEntity.class, EntityDataSerializers.STRING);
     public final Set<String> StyleTypes = Set.of("male", "female");
 
     public AvaliEntity(PlayMessages.SpawnEntity ignoredPacket, Level world) {
         this(ChangedAddonEntities.AVALI.get(), world);
     }
 
-
     public AvaliEntity(EntityType<? extends ChangedEntity> type, Level level) {
         super(type, level);
+    }
+
+    public boolean isColorful() {
+        return true;
     }
 
     @Override
@@ -60,6 +63,10 @@ public class AvaliEntity extends AbstractBasicOrganicChangedEntity implements Va
     @Override
     protected void defineSynchedData() {
         super.defineSynchedData();
+        defineAvaliSyncData();
+    }
+
+    protected void defineAvaliSyncData() {
         this.entityData.define(PRIMARY_COLOR, Color3.WHITE.toInt());
         this.entityData.define(SECONDARY_COLOR, Color3.WHITE.toInt());
         this.entityData.define(STRIPES_COLOR, Color3.WHITE.toInt());
@@ -88,6 +95,19 @@ public class AvaliEntity extends AbstractBasicOrganicChangedEntity implements Va
 
     public void setDimensionScale(float scale) {
         this.entityData.set(SIZE_SCALE, scale);
+    }
+
+    @Override
+    public CompoundTag savePlayerVariantData() {
+        CompoundTag tag = super.savePlayerVariantData();
+        saveColors(tag);
+        return tag;
+    }
+
+    @Override
+    public void readPlayerVariantData(CompoundTag tag) {
+        super.readPlayerVariantData(tag);
+        readColors(tag);
     }
 
     @Override
@@ -125,6 +145,10 @@ public class AvaliEntity extends AbstractBasicOrganicChangedEntity implements Va
     @Override
     public void baseTick() {
         super.baseTick();
+        failSafe();
+    }
+
+    protected void failSafe() {
         if (!getStyleOfColor().equals("male") && !getStyleOfColor().equals("female")) {
             this.setStyleOfColor("male");
         }
@@ -133,15 +157,21 @@ public class AvaliEntity extends AbstractBasicOrganicChangedEntity implements Va
     @Override
     public @Nullable SpawnGroupData finalizeSpawn(@NotNull ServerLevelAccessor world, @NotNull DifficultyInstance difficulty, @NotNull MobSpawnType reason, @Nullable SpawnGroupData data, @Nullable CompoundTag tag) {
         // Randomize as cores
-        this.setPrimaryColor(Color3.fromInt(random.nextInt(0, Integer.MAX_VALUE - 1)));
-        this.setSecondaryColor(Color3.fromInt(random.nextInt(0, Integer.MAX_VALUE - 1)));
-        this.setStripesColor(Color3.fromInt(random.nextInt(0, Integer.MAX_VALUE - 1)));
-        this.setStyleOfColor(this.random.nextBoolean() ? "male" : "female");
+        applyRandomColors();
 
         return super.finalizeSpawn(world, difficulty, reason, data, tag);
     }
 
+    protected void applyRandomColors() {
+        this.setPrimaryColor(Color3.fromInt(random.nextInt(0, Integer.MAX_VALUE - 1)));
+        this.setSecondaryColor(Color3.fromInt(random.nextInt(0, Integer.MAX_VALUE - 1)));
+        this.setStripesColor(Color3.fromInt(random.nextInt(0, Integer.MAX_VALUE - 1)));
+        this.setStyleOfColor(this.random.nextBoolean() ? "male" : "female");
+    }
+
+    @Nullable
     public Color3 getColor(int layer) {
+        if (!isColorful()) return null;
         return switch (layer) {
             case 1 -> getSecondaryColor();
             case 2 -> getStripesColor();
@@ -158,6 +188,7 @@ public class AvaliEntity extends AbstractBasicOrganicChangedEntity implements Va
     }
 
     public void setColor(int layer, Color3 color3) {
+        if (!isColorful()) return;
         switch (layer) {
             case 1 -> setSecondaryColor(color3);
             case 2 -> setStripesColor(color3);

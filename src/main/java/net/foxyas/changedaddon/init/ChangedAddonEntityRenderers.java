@@ -1,11 +1,12 @@
 package net.foxyas.changedaddon.init;
 
 import net.foxyas.changedaddon.client.renderer.*;
-import net.foxyas.changedaddon.client.renderer.projectiles.*;
 import net.foxyas.changedaddon.client.renderer.advanced.*;
 import net.foxyas.changedaddon.client.renderer.basic.*;
 import net.foxyas.changedaddon.client.renderer.mobs.ErikRenderer;
-import net.foxyas.changedaddon.client.renderer.mobs.FoxyasRenderer;
+import net.foxyas.changedaddon.client.renderer.mobs.LatexSnowFoxFoxyasRenderer;
+import net.foxyas.changedaddon.client.renderer.projectiles.SimpleProjectileRenderer;
+import net.foxyas.changedaddon.client.renderer.projectiles.WitherSimpleProjectileRenderer;
 import net.ltxprogrammer.changed.client.RegisterComplexRenderersEvent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
@@ -14,14 +15,14 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class ChangedAddonEntityRenderers {
+
     @SubscribeEvent
     public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
-
-        event.registerEntityRenderer(ChangedAddonEntities.LATEX_SNOW_FOX_MALE.get(), LatexSnowFoxRenderer::new);
+        event.registerEntityRenderer(ChangedAddonEntities.LATEX_SNOW_FOX_MALE.get(), LatexSnowFoxMaleRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.LATEX_SNOW_FOX_FEMALE.get(), LatexSnowFoxFemaleRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.LUMINAR_CRYSTAL_SPEAR.get(), LuminarCrystalSpearRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.DAZED_LATEX.get(), LatexDazedRenderer::new);
-        event.registerEntityRenderer(ChangedAddonEntities.PURO_KIND_MALE.get(), PuroKindRenderer::new);
+        event.registerEntityRenderer(ChangedAddonEntities.PURO_KIND_MALE.get(), PuroKindMaleRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.PURO_KIND_FEMALE.get(), PuroKindFemaleRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.BUNY.get(), BunyRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.SNOW_LEOPARD_FEMALE_ORGANIC.get(), SnowLeopardFemaleOrganicRenderer::new);
@@ -54,6 +55,7 @@ public class ChangedAddonEntityRenderers {
         event.registerEntityRenderer(ChangedAddonEntities.HAYDEN_FENNEC_FOX.get(), HaydenFennecFoxRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.BLUE_LIZARD.get(), BlueLizardRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.AVALI.get(), AvaliRenderer::new);
+        event.registerEntityRenderer(ChangedAddonEntities.AVALI_ZERGODMASTER.get(), AvaliZerGodMasterRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.LATEX_KITSUNE_FEMALE.get(), LatexKitsuneFemaleRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.LATEX_KITSUNE_MALE.get(), LatexKitsuneMaleRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.LATEX_CALICO_CAT.get(), LatexCalicoCatRenderer::new);
@@ -69,10 +71,13 @@ public class ChangedAddonEntityRenderers {
         event.registerEntityRenderer(ChangedAddonEntities.LATEX_CHEETAH_FEMALE.get(), LatexCheetahFemaleRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.LATEX_CHEETAH_MALE.get(), LatexCheetahMaleRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.LUMINARA_FLOWER_BEAST.get(), LuminaraFlowerBeastRenderer::new);
+        event.registerEntityRenderer(ChangedAddonEntities.PROTOGEN_0SENIA0.get(), Protogen0senia0Renderer::new);
+        event.registerEntityRenderer(ChangedAddonEntities.LATEX_KAYLA_SHARK.get(), LatexKaylaSharkRenderer::new);
+        event.registerEntityRenderer(ChangedAddonEntities.LATEX_SNOW_FOX_FOXYAS.get(), LatexSnowFoxFoxyasRenderer::new);
+        event.registerEntityRenderer(ChangedAddonEntities.LATEX_BORDER_COLLIE.get(), LatexBorderCollieRenderer::new);
 
         // --- MONSTER/MOB ENTITIES ---
         event.registerEntityRenderer(ChangedAddonEntities.PROTOTYPE.get(), PrototypeRenderer::new);
-        event.registerEntityRenderer(ChangedAddonEntities.FOXYAS.get(), FoxyasRenderer::new);
         event.registerEntityRenderer(ChangedAddonEntities.ERIK.get(), ErikRenderer::new);
 
         // --- PROJECTILE ENTITIES ---

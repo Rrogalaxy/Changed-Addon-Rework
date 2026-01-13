@@ -1,29 +1,39 @@
 package net.foxyas.changedaddon.mixins.entity;
 
-import net.foxyas.changedaddon.abilities.ToggleClimbAbilityInstance;
-import net.foxyas.changedaddon.abilities.WindPassiveAbility;
-import net.foxyas.changedaddon.entity.interfaces.ExtraConditions;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import com.llamalad7.mixinextras.sugar.Local;
+import net.foxyas.changedaddon.ability.ToggleClimbAbilityInstance;
+import net.foxyas.changedaddon.entity.api.ExtraConditions;
+import net.foxyas.changedaddon.entity.api.IAlphaAbleEntity;
 import net.foxyas.changedaddon.init.ChangedAddonAbilities;
-import net.foxyas.changedaddon.variants.ChangedAddonTransfurVariants;
-import net.foxyas.changedaddon.villagerTrades.ChangedAddonTrades;
+import net.foxyas.changedaddon.item.clothes.AccessoryItemExtension;
+import net.foxyas.changedaddon.variant.VariantExtraStats;
 import net.ltxprogrammer.changed.ability.AbstractAbilityInstance;
-import net.ltxprogrammer.changed.ability.SimpleAbilityInstance;
-import net.ltxprogrammer.changed.entity.LatexType;
-import net.ltxprogrammer.changed.entity.variant.TransfurVariant;
-import net.ltxprogrammer.changed.entity.variant.TransfurVariantInstance;
-import net.ltxprogrammer.changed.fluid.AbstractLatexFluid;
+import net.ltxprogrammer.changed.data.AccessorySlotContext;
+import net.ltxprogrammer.changed.data.AccessorySlots;
 import net.ltxprogrammer.changed.process.ProcessTransfur;
 import net.ltxprogrammer.changed.util.EntityUtil;
+import net.minecraft.world.damagesource.CombatRules;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Map;
+
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
+
+    @Shadow
+    public abstract Iterable<ItemStack> getArmorSlots();
 
     @Inject(method = "onClimbable", at = @At("HEAD"), cancellable = true)
     public void onClimbable(CallbackInfoReturnable<Boolean> callback) {
@@ -46,4 +56,80 @@ public abstract class LivingEntityMixin {
         });
     }
 
+    @ModifyExpressionValue(
+            method = "updateFallFlying",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/item/ItemStack;canElytraFly(Lnet/minecraft/world/entity/LivingEntity;)Z",
+                    remap = false
+            )
+    )
+    private boolean changedaddon$canElytraFlyRedirect(boolean original) {
+        return ProcessTransfur.getPlayerTransfurVariantSafe(EntityUtil.playerOrNull((LivingEntity) (Object) this))
+                .map(latexVariant -> {
+                    if (latexVariant.getChangedEntity() instanceof VariantExtraStats extra) {
+                        return extra.getFlyType().canGlide();
+                    }
+                    return latexVariant.getParent().canGlide || original;
+                })
+                .orElse(original);
+    }
+
+    @ModifyExpressionValue(
+            method = "updateFallFlying",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/item/ItemStack;elytraFlightTick(Lnet/minecraft/world/entity/LivingEntity;I)Z",
+                    remap = false
+            )
+    )
+    private boolean changedaddon$elytraFlightTickRedirect(boolean original) {
+        return ProcessTransfur.getPlayerTransfurVariantSafe(EntityUtil.playerOrNull((LivingEntity) (Object) this))
+                .map(latexVariant -> {
+                    if (latexVariant.getChangedEntity() instanceof VariantExtraStats extra) {
+                        return extra.getFlyType().canGlide() || original;
+                    }
+                    return latexVariant.getParent().canGlide || original;
+                })
+                .orElse(original);
+    }
+
+    @ModifyReturnValue(method = "getDamageAfterMagicAbsorb",
+            at = @At(value = "RETURN"))
+    public float andAccessorySlots(float original, @Local(argsOnly = true) DamageSource damageSource, @Local(argsOnly = true) float pDamageAmount) {
+        if (damageSource.isBypassMagic()) return original;
+
+        int damageProtection = EnchantmentHelper.getDamageProtection(this.getArmorSlots(), damageSource);
+
+        MutableInt total = new MutableInt();
+
+        LivingEntity self = (LivingEntity) (Object) this;
+        AccessorySlots.getForEntity(self).ifPresent((accessorySlots -> accessorySlots.forEachSlot((slot, itemStack) -> {
+            if (!itemStack.isEmpty() && itemStack.getItem() instanceof AccessoryItemExtension accessoryItem) {
+                for (Map.Entry<Enchantment, Integer> entry : EnchantmentHelper.getEnchantments(itemStack).entrySet()) {
+                    if (accessoryItem.isConsideredByEnchantment(new AccessorySlotContext<>(self, slot, itemStack), entry.getKey())) {
+                        total.add(entry.getKey().getDamageProtection(entry.getValue(), damageSource));
+                    }
+                }
+            }
+        })));
+
+        float damageProtectionAmount = total.intValue() + damageProtection;
+
+        if (damageProtectionAmount > 0) {
+            pDamageAmount = CombatRules.getDamageAfterMagicAbsorb(pDamageAmount, damageProtectionAmount);
+        }
+
+        return pDamageAmount;
+    }
+
+    @Inject(method = "getScale", at = @At("RETURN"), cancellable = true)
+    private void getScaleHook(CallbackInfoReturnable<Float> cir) {
+        float originalValue = cir.getReturnValue();
+        var self = (LivingEntity) (Object) this;
+        if (self instanceof IAlphaAbleEntity iAlphaAbleEntity && iAlphaAbleEntity.isAlpha()) {
+            float alphaScale = iAlphaAbleEntity.alphaAdditionalScale();
+            cir.setReturnValue(originalValue + alphaScale);
+        }
+    }
 }

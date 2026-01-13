@@ -1,6 +1,6 @@
 package net.foxyas.changedaddon.mixins;
 
-import net.foxyas.changedaddon.abilities.ChangedAddonAbilitys;
+import net.foxyas.changedaddon.ability.ChangedAddonAbilitys;
 import net.ltxprogrammer.changed.entity.variant.TransfurVariantInstance;
 import net.ltxprogrammer.changed.process.ProcessTransfur;
 import net.minecraft.core.BlockPos;
@@ -19,7 +19,7 @@ public class LogicHandle {
         if (context instanceof EntityCollisionContext entityContext) {
             Entity collidingEntity = entityContext.getEntity();
 
-            if (collidingEntity != null && state.is(BlockTags.create(new ResourceLocation("changed_addon:passable_blocks")))) {
+            if (collidingEntity != null && state.is(BlockTags.create(ResourceLocation.parse("changed_addon:passable_blocks")))) {
                 // Verifica se a entidade é um jogador
                 if (collidingEntity instanceof Player player) {
                     // Verifica uma condição específica do jogador (no caso, ProcessTransfur)

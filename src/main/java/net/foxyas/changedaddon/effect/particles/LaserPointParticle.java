@@ -6,6 +6,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.foxyas.changedaddon.configuration.ChangedAddonClientConfiguration;
+import net.foxyas.changedaddon.init.ChangedAddonParticleTypes;
 import net.foxyas.changedaddon.init.ChangedAddonTags;
 import net.foxyas.changedaddon.item.LaserPointer;
 import net.foxyas.changedaddon.util.DynamicClipContext;
@@ -95,7 +96,7 @@ public class LaserPointParticle extends TextureSheetParticle {
 
         EntityHitResult entityHitResult = PlayerUtil.getEntityHitLookingAt(owner, result.getType() != HitResult.Type.MISS
                 ? (float) result.distanceTo(owner)
-                : LaserPointer.MAX_LASER_REACH, false);
+                : LaserPointer.MAX_LASER_REACH, null);
 
         Vec3 hitPos = result.getLocation();
         Direction face = null;
@@ -253,7 +254,7 @@ public class LaserPointParticle extends TextureSheetParticle {
 
         @Override
         public @NotNull ParticleType<?> getType() {
-            return ChangedAddonParticles.LASER_POINT; // Substitua pelo seu ParticleType real
+            return ChangedAddonParticleTypes.LASER_POINT.get();
         }
 
         @Override

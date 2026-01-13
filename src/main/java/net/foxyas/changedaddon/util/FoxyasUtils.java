@@ -1,13 +1,13 @@
 package net.foxyas.changedaddon.util;
 
-import com.ibm.icu.impl.Pair;
+import com.google.common.collect.Multimap;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.math.Matrix4f;
 import net.ltxprogrammer.changed.block.AbstractLatexBlock;
 import net.ltxprogrammer.changed.entity.ChangedEntity;
 import net.ltxprogrammer.changed.entity.LatexType;
 import net.ltxprogrammer.changed.entity.variant.TransfurVariant;
-import net.ltxprogrammer.changed.init.ChangedTags;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -16,7 +16,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
@@ -30,7 +33,6 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 import java.util.*;
@@ -59,13 +61,13 @@ public class FoxyasUtils {
 
     public static Stream<BlockPos> betweenClosedStreamSphere(BlockPos center, int horizontalRadiusSphere, int verticalRadiusSphere) {
         List<BlockPos> blockPosList = new ArrayList<>();
-        for (int i = -verticalRadiusSphere; i <= verticalRadiusSphere; i++) {
+        for (int y = -verticalRadiusSphere; y <= verticalRadiusSphere; y++) {
             for (int xi = -horizontalRadiusSphere; xi <= horizontalRadiusSphere; xi++) {
                 for (int zi = -horizontalRadiusSphere; zi <= horizontalRadiusSphere; zi++) {
-                    double distanceSq = (xi * xi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere) + (i * i) / (double) (verticalRadiusSphere * verticalRadiusSphere)
+                    double distanceSq = (xi * xi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere) + (y * y) / (double) (verticalRadiusSphere * verticalRadiusSphere)
                             + (zi * zi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere);
                     if (distanceSq <= 1.0) {
-                        BlockPos pos = center.offset(xi, i, zi);
+                        BlockPos pos = center.offset(xi, y, zi);
                         blockPosList.add(pos);
                     }
                 }
@@ -162,8 +164,6 @@ public class FoxyasUtils {
     }
 
 
-
-
     /**
      * Checks if one entity (eyeEntity) can see another (targetToSee), using raycasting and FOV.
      *
@@ -201,9 +201,9 @@ public class FoxyasUtils {
     /**
      * Checks if one entity (eyeEntity) can see another (targetToSee), using raycasting and FOV.
      *
-     * @param eyeEntity   The entity doing the looking.
-     * @param to  The target pos to be looked at.
-     * @param fovDegrees  Field of view angle in degrees (e.g., 90 means 45 degrees to each side).
+     * @param eyeEntity  The entity doing the looking.
+     * @param to         The target pos to be looked at.
+     * @param fovDegrees Field of view angle in degrees (e.g., 90 means 45 degrees to each side).
      * @return true if visible and within FOV, false otherwise.
      */
     public static boolean canEntitySeePos(LivingEntity eyeEntity, Vec3 to, double fovDegrees) {
@@ -233,9 +233,9 @@ public class FoxyasUtils {
     /**
      * Checks if one entity (eyeEntity) can see another (targetToSee), using raycasting and FOV.
      *
-     * @param eyeEntity   The entity doing the looking.
-     * @param to  The target pos to be looked at.
-     * @param fovDegrees  Field of view angle in degrees (e.g., 90 means 45 degrees to each side).
+     * @param eyeEntity  The entity doing the looking.
+     * @param to         The target pos to be looked at.
+     * @param fovDegrees Field of view angle in degrees (e.g., 90 means 45 degrees to each side).
      * @return true if visible and within FOV, false otherwise.
      */
     public static boolean canEntitySeePosIgnoreGlass(LivingEntity eyeEntity, Vec3 to, double fovDegrees) {
@@ -268,7 +268,7 @@ public class FoxyasUtils {
      * @param targetToSee A entidade que deve ser visível.
      * @return true se for visível, false se houver obstrução.
      */
-    public static boolean canEntitySeeOther(LivingEntity eyeEntity, LivingEntity targetToSee) {
+    public static boolean canEntitySeeOther(Entity eyeEntity, Entity targetToSee) {
         Level level = eyeEntity.level;
         if (level != targetToSee.level) return false;
 
@@ -290,7 +290,7 @@ public class FoxyasUtils {
      * @param targetToSee A entidade que deve ser visível.
      * @return true se for visível, false se houver obstrução.
      */
-    public static boolean canEntitySeeOtherIgnoreGlass(LivingEntity eyeEntity, LivingEntity targetToSee) {
+    public static boolean canEntitySeeOtherIgnoreGlass(Entity eyeEntity, Entity targetToSee) {
         Level level = eyeEntity.level;
         if (level != targetToSee.level) return false;
 
@@ -314,7 +314,7 @@ public class FoxyasUtils {
      * @param fovDegrees  Field of view angle in degrees (e.g., 90 means 45 degrees to each side).
      * @return true if visible and within FOV, false otherwise.
      */
-    public static boolean canEntitySeeOtherIgnoreGlass(LivingEntity eyeEntity, LivingEntity targetToSee, double fovDegrees) {
+    public static boolean canEntitySeeOtherIgnoreGlass(Entity eyeEntity, Entity targetToSee, double fovDegrees) {
         Level level = eyeEntity.level;
         if (level != targetToSee.level) return false;
 
@@ -328,7 +328,7 @@ public class FoxyasUtils {
         double dot = lookVec.dot(directionToTarget);
         double requiredDot = Math.cos(Math.toRadians(fovDegrees / 2.0));
         if (dot < requiredDot)
-            return false; // Outside of FOV
+            return false; // Outside FOV
 
         // Then, raycast from eyeEntity to targetToSee to check if the view is blocked
         HitResult result = level.clip(new DynamicClipContext(from, to,
@@ -343,11 +343,11 @@ public class FoxyasUtils {
     /**
      * Verifica se eyeEntity consegue ver targetToSee com base na linha de visão.
      *
-     * @param eyeEntity   A entidade que está observando.
-     * @param to Target position
+     * @param eyeEntity A entidade que está observando.
+     * @param to        Target position
      * @return true se for visível, false se houver obstrução.
      */
-    public static boolean canEntitySeePosIgnoreGlass(LivingEntity eyeEntity, Vec3 to) {
+    public static boolean canEntitySeePosIgnoreGlass(Entity eyeEntity, Vec3 to) {
         Level level = eyeEntity.level;
 
         Vec3 from = eyeEntity.getEyePosition(1.0F);
@@ -414,8 +414,8 @@ public class FoxyasUtils {
 
         while (!toVisit.isEmpty()) {
             Pair<BlockPos, Integer> entry = toVisit.poll();
-            BlockPos current = entry.first;
-            int depth = entry.second;
+            BlockPos current = entry.getFirst();
+            int depth = entry.getSecond();
 
             if (depth > maxDepth) {
                 continue;
@@ -448,8 +448,8 @@ public class FoxyasUtils {
 
         while (!toVisit.isEmpty()) {
             Pair<BlockPos, Integer> entry = toVisit.poll();
-            BlockPos current = entry.first;
-            int depth = entry.second;
+            BlockPos current = entry.getFirst();
+            int depth = entry.getSecond();
 
             if (depth > maxDepth) {
                 continue;
@@ -483,8 +483,8 @@ public class FoxyasUtils {
 
         while (!queue.isEmpty()) {
             var current = queue.poll();
-            BlockPos pos = current.first;
-            int depth = current.second;
+            BlockPos pos = current.getFirst();
+            int depth = current.getSecond();
 
             if (depth > maxDepth) continue;
 
@@ -785,6 +785,21 @@ public class FoxyasUtils {
         );
 
         return baseOscillation * scale + bpiSize;
+    }
+
+
+    public static double getAttributeValueFromItemStack(ItemStack stack, Attribute attribute, EquipmentSlot slot) {
+        Multimap<Attribute, AttributeModifier> modifiers = stack.getAttributeModifiers(slot);
+        Collection<AttributeModifier> mods = modifiers.get(attribute);
+
+        double total = 0.0;
+        for (AttributeModifier mod : mods) {
+            switch (mod.getOperation()) {
+                case ADDITION -> total += mod.getAmount();
+                case MULTIPLY_BASE, MULTIPLY_TOTAL -> total += 1.0 * mod.getAmount();
+            }
+        }
+        return total;
     }
 
 

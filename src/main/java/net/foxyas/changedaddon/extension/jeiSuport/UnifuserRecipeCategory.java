@@ -10,16 +10,15 @@ import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.foxyas.changedaddon.ChangedAddonMod;
 import net.foxyas.changedaddon.init.ChangedAddonBlocks;
 import net.foxyas.changedaddon.init.ChangedAddonItems;
-import net.foxyas.changedaddon.recipes.UnifuserRecipe;
+import net.foxyas.changedaddon.recipe.UnifuserRecipe;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-@Deprecated
 public class UnifuserRecipeCategory implements IRecipeCategory<UnifuserRecipe> {
+
     public final static ResourceLocation UID = ChangedAddonMod.resourceLoc("jei_unifuser");
     public final static ResourceLocation TEXTURE = ChangedAddonMod.textureLoc("textures/screens/jei_unifuser_screen");
     private final IDrawable background;
@@ -32,12 +31,12 @@ public class UnifuserRecipeCategory implements IRecipeCategory<UnifuserRecipe> {
 
     @Override
     public mezz.jei.api.recipe.@NotNull RecipeType<UnifuserRecipe> getRecipeType() {
-        return ChangedAddonJeiPlugin.JeiUnifuser_Type;
+        return ChangedAddonJeiPlugin.UNIFUSER_RECIPE_TYPE;
     }
 
     @Override
     public @NotNull Component getTitle() {
-        return new TextComponent((new TranslatableComponent("block.changed_addon.unifuser").getString()));
+        return new TranslatableComponent("block.changed_addon.unifuser");
     }
 
     @Override
@@ -50,18 +49,24 @@ public class UnifuserRecipeCategory implements IRecipeCategory<UnifuserRecipe> {
         return this.icon;
     }
 
+
+    /**
+     * getUid and getRecipeClass are marked to removal
+     * you are supposed to get the info from getRecipeType() method now
+     */
+
     @Deprecated
-    @Override
     @SuppressWarnings("removal")
     public @NotNull Class<? extends UnifuserRecipe> getRecipeClass() {
         return UnifuserRecipe.class;
     }
 
-    @Override
     @SuppressWarnings("removal")
     public @NotNull ResourceLocation getUid() {
         return UID;
     }
+
+    /// --- End of the for removal classes ---
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, UnifuserRecipe recipe, @NotNull IFocusGroup focuses) {

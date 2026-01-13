@@ -1,11 +1,15 @@
 package net.foxyas.changedaddon.datagen;
 
+import net.foxyas.changedaddon.datagen.builders.ChangedAddonRecipeBuilder;
+import net.foxyas.changedaddon.init.ChangedAddonRecipeTypes;
 import net.ltxprogrammer.changed.init.ChangedBlocks;
 import net.ltxprogrammer.changed.init.ChangedItems;
 import net.minecraft.advancements.CriterionTriggerInstance;
 import net.minecraft.data.DataGenerator;
 import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.data.recipes.RecipeBuilder;
 import net.minecraft.data.recipes.ShapedRecipeBuilder;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
@@ -15,6 +19,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.function.Consumer;
 
 import static net.foxyas.changedaddon.init.ChangedAddonItems.*;
+import static net.minecraft.world.item.Items.DIAMOND;
+import static net.minecraft.world.item.Items.TINTED_GLASS;
 
 public class RecipeProvider extends net.minecraft.data.recipes.RecipeProvider {
 
@@ -103,6 +109,30 @@ public class RecipeProvider extends net.minecraft.data.recipes.RecipeProvider {
 
         reinforce(REINFORCED_WALL_SILVER_STRIPED.get(), ChangedBlocks.WALL_BLUE_STRIPED.get(), iridium, hasIridium)
                 .save(recipeConsumer);
+
+        String lunarRose = getHasName(LUNAR_ROSE.get());
+        CriterionTriggerInstance hasLunarRose = has(LUNAR_ROSE.get());
+
+        ChangedAddonRecipeBuilder.shapeless(new ItemStack(LUNAR_ROSE.get()))
+                .withSpeed(5)
+                .withType(ChangedAddonRecipeTypes.UNIFUSER_RECIPE.get())
+                .requires(DIAMOND).requires(TINTED_GLASS)
+                .unlockedBy(lunarRose, hasLunarRose)
+                .save(recipeConsumer, RecipeBuilder.getDefaultRecipeId(LUNAR_ROSE.get()) + "_secret");
+
+        ShapedRecipeBuilder.shaped(KEYCARD_ITEM.get())
+                .pattern("IQI")
+                .pattern("NPN")
+                .pattern("CRC")
+                .define('I', Items.IRON_INGOT)
+                .define('N', Items.IRON_NUGGET)
+                .define('Q', Items.QUARTZ)
+                .define('R', Items.REDSTONE)
+                .define('C', Tags.Items.INGOTS_COPPER)
+                .define('P', Items.PAPER)
+                .unlockedBy("has_redstone", has(Items.REDSTONE))
+                .save(recipeConsumer);
+
     }
 
     private ShapedRecipeBuilder reinforce(ItemLike result, ItemLike input, String criterionName, CriterionTriggerInstance criterion) {

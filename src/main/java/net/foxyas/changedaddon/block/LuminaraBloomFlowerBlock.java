@@ -3,9 +3,11 @@ package net.foxyas.changedaddon.block;
 import net.foxyas.changedaddon.entity.advanced.LuminaraFlowerBeastEntity;
 import net.foxyas.changedaddon.init.ChangedAddonBlocks;
 import net.foxyas.changedaddon.init.ChangedAddonMobEffects;
+import net.foxyas.changedaddon.init.ChangedAddonTags;
 import net.foxyas.changedaddon.util.FoxyasUtils;
 import net.ltxprogrammer.changed.block.AbstractLatexBlock;
 import net.ltxprogrammer.changed.entity.ChangedEntity;
+import net.ltxprogrammer.changed.entity.LatexType;
 import net.ltxprogrammer.changed.entity.variant.TransfurVariantInstance;
 import net.ltxprogrammer.changed.init.ChangedTags;
 import net.ltxprogrammer.changed.process.ProcessTransfur;
@@ -39,6 +41,7 @@ import java.util.List;
 import java.util.Random;
 
 public class LuminaraBloomFlowerBlock extends FlowerBlock implements BonemealableBlock {
+
     public LuminaraBloomFlowerBlock() {
         super(ChangedAddonMobEffects.UNTRANSFUR, 60,
                 BlockBehaviour.Properties.of(Material.PLANT)
@@ -67,15 +70,23 @@ public class LuminaraBloomFlowerBlock extends FlowerBlock implements Bonemealabl
     public void tick(@NotNull BlockState pState, @NotNull ServerLevel pLevel, @NotNull BlockPos pPos, @NotNull Random pRandom) {
         super.tick(pState, pLevel, pPos, pRandom);
         tryToPacifyNearbyEntities(pLevel, pPos, 64);
+        if (pState.hasProperty(AbstractLatexBlock.COVERED) && pState.getValue(AbstractLatexBlock.COVERED) != LatexType.NEUTRAL) {
+            performBonemeal(pLevel, pRandom, pPos, pState);
+            pLevel.setBlockAndUpdate(pPos, pState.setValue(AbstractLatexBlock.COVERED, LatexType.NEUTRAL));
+        }
         pLevel.scheduleTick(pPos, this, 10);
     }
 
-    public void tryToPacifyNearbyEntities(@NotNull ServerLevel pLevel, BlockPos pPos, double range) {
+    public static void tryToPacifyNearbyEntities(@NotNull ServerLevel pLevel, BlockPos pPos, double range) {
         List<LivingEntity> nearChangedBeasts = pLevel.getEntitiesOfClass(LivingEntity.class,
                 new AABB(pPos, pPos).inflate(range),
                 (entity) -> FoxyasUtils.canEntitySeePosIgnoreGlass(entity, Vec3.atCenterOf(pPos), 90));
         for (LivingEntity livingEntity : nearChangedBeasts) {
             if (livingEntity instanceof ChangedEntity changedEntity) {
+                if (changedEntity.getType().is(ChangedAddonTags.EntityTypes.PACIFY_IMMUNE)) {
+                    continue;
+                }
+
                 if (changedEntity instanceof LuminaraFlowerBeastEntity) {
                     continue;
                 }
@@ -88,6 +99,11 @@ public class LuminaraBloomFlowerBlock extends FlowerBlock implements Bonemealabl
             } else if (livingEntity instanceof Player player) {
                 TransfurVariantInstance<?> instance = ProcessTransfur.getPlayerTransfurVariant(player);
                 if (instance != null) {
+                    if (instance.getChangedEntity().getType().is(ChangedAddonTags.EntityTypes.PACIFY_IMMUNE)) {
+                        continue;
+                    }
+
+
                     if ((instance.getChangedEntity() instanceof LuminaraFlowerBeastEntity)) {
                         continue;
                     }
@@ -135,12 +151,6 @@ public class LuminaraBloomFlowerBlock extends FlowerBlock implements Bonemealabl
         }
         return super.mayPlaceOn(pState, pLevel, pPos);
     }
-
-//    @Override
-//    public boolean isValidBonemealTarget(@NotNull BlockGetter blockGetter, @NotNull BlockPos blockPos, @NotNull BlockState blockState, boolean pIsClient) {
-//        BlockState below = blockGetter.getBlockState(blockPos.below());
-//        return below.getBlock() instanceof AbstractLatexBlock || below.is(BlockTags.DIRT) || below.is(Blocks.FARMLAND);
-//    }
 
     @Override
     public boolean isValidBonemealTarget(@NotNull BlockGetter blockGetter, @NotNull BlockPos blockPos, @NotNull BlockState blockState, boolean pIsClient) {

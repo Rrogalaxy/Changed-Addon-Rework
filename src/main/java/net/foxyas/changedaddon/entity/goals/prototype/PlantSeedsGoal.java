@@ -1,13 +1,15 @@
 package net.foxyas.changedaddon.entity.goals.prototype;
 
 import net.foxyas.changedaddon.entity.advanced.PrototypeEntity;
-import net.foxyas.changedaddon.init.ChangedAddonSounds;
+import net.foxyas.changedaddon.init.ChangedAddonSoundEvents;
+import net.foxyas.changedaddon.util.DelayedTask;
 import net.ltxprogrammer.changed.entity.Emote;
 import net.ltxprogrammer.changed.init.ChangedParticles;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.item.BlockItem;
@@ -17,15 +19,22 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CropBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.items.IItemHandler;
 
 import java.util.EnumSet;
 
 public class PlantSeedsGoal extends Goal {
 
-    private static final int searchRange = 6;
+    private static final int searchRange = 8;
+
     private final PrototypeEntity entity;
     private final PathNavigation navigation;
+
+    private boolean lock;
+    private boolean pendingEffects = true;
     private BlockPos targetPos;
+    private int plantCooldown;
+    private int noPathTimeout;
 
     public PlantSeedsGoal(PrototypeEntity entity) {
         this.entity = entity;
@@ -40,70 +49,102 @@ public class PlantSeedsGoal extends Goal {
 
     @Override
     public boolean canUse() {
-        ItemStack seeds = findSeeds();
-        if (seeds.isEmpty()) return false;
+        if (lock) return false;
 
-        // Look for farmland with air above to plant
-        targetPos = findPlantableFarmland(entity.getLevel(), entity.blockPosition(), searchRange);
-        return targetPos != null;
+        return !findSeeds(false).isEmpty();
     }
 
     @Override
-    public void start() {
+    public boolean canContinueToUse() {
+        if (targetPos == null) {
+            lock = true;
+            new DelayedTask(200, () -> lock = false);
+            return false;
+        }
+
+        return !findSeeds(false).isEmpty();
+    }
+
+    @Override
+    public void start() {// Look for farmland with air above to plant
+        Level level = entity.getLevel();
+        findPlantableFarmland(level, entity.blockPosition());
         if (targetPos == null) return;
 
-        entity.getLevel().playSound(null, entity.blockPosition(), ChangedAddonSounds.PROTOTYPE_IDEA, SoundSource.MASTER, 1, 1);
-
-        if (entity.getLevel().isClientSide) {
-            entity.getLevel().addParticle(
-                    ChangedParticles.emote(entity, Emote.IDEA),
-                    entity.getX(),
-                    entity.getY() + (double) entity.getDimensions(entity.getPose()).height + 0.65,
-                    entity.getZ(),
-                    0.0f,
-                    0.0f,
-                    0.0f
-            );
-        }
         navigation.moveTo(targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5, 0.25f);
     }
 
     @Override
     public void tick() {
-        if (targetPos == null) return;
-
-        if (entity.blockPosition().closerThan(targetPos, 3)) {
-            plantSeedAt(targetPos);
-            targetPos = null; // reset target after planting
-            return;
-        } else {
+        Level level = entity.level;
+        if (targetPos == null || isBlockInvalid(level, level.getBlockState(targetPos.below()), targetPos)) {
+            findPlantableFarmland(level, entity.blockPosition());
+            if (targetPos == null) return;
             navigation.moveTo(targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5, 0.25f);
-            // Make entity look at a target position
-            this.entity.getLookControl().setLookAt(
-                    targetPos.getX(), targetPos.getY(), targetPos.getZ(),
-                    30.0F, // yaw change speed (degrees per tick)
-                    30.0F  // pitch change speed
-            );
         }
 
-        navigation.moveTo(targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5, 0.25f);
+        entity.getLookControl().setLookAt(
+                targetPos.getX(), targetPos.getY(), targetPos.getZ(),
+                30.0F, // yaw change speed (degrees per tick)
+                30.0F  // pitch change speed
+        );
+
+        if (plantCooldown > 0) {
+            plantCooldown--;
+            return;
+        }
+
+        if (entity.blockPosition().closerThan(targetPos, 3)) {
+            plantSeedAt();
+            findPlantableFarmland(level, entity.blockPosition()); // reset target after planting
+            if (targetPos != null)
+                navigation.moveTo(targetPos.getX() + 0.5, targetPos.getY(), targetPos.getZ() + 0.5, 0.25f);
+        }
+
+        if (navigation.isStuck() || (navigation.getPath() != null && !navigation.getPath().canReach())) {
+            noPathTimeout--;
+            if (noPathTimeout <= 0) {//No path, try again later
+                targetPos = null;
+            } else if (noPathTimeout % 25 == 0) navigation.recomputePath();
+            return;
+        }
+
+        noPathTimeout = 100;
+
+        if (pendingEffects) {
+            pendingEffects = false;
+
+            level.playSound(null, entity.blockPosition(), ChangedAddonSoundEvents.PROTOTYPE_IDEA.get(), SoundSource.MASTER, 1, 1);
+            if (level.isClientSide() && level instanceof ClientLevel clientLevel) {
+                clientLevel.addParticle(ChangedParticles.emote(entity, Emote.IDEA), false,
+                        entity.getX(), entity.getY() + entity.getDimensions(entity.getPose()).height + 0.65, entity.getZ(),
+                        1, 0, 0);
+
+            }
+
+        }
     }
 
     @Override
     public void stop() {
-        super.stop();
+        navigation.stop();
+        pendingEffects = true;
+        targetPos = null;
+        plantCooldown = 0;
+        noPathTimeout = 100;
     }
 
-    private ItemStack findSeeds() {
-        ItemStack seeds = entity.getItemBySlot(EquipmentSlot.MAINHAND);
-        if (isSeed(seeds)) return seeds;
+    private boolean isBlockInvalid(Level level, BlockState state, BlockPos above) {
+        return state.getBlock() != Blocks.FARMLAND || !level.getBlockState(above).isAir();
+    }
 
-        seeds = entity.getItemBySlot(EquipmentSlot.OFFHAND);
-        if (isSeed(seeds)) return seeds;
-
-        for (int i = 0; i < entity.getInventory().getContainerSize(); i++) {
-            seeds = entity.getInventory().getItem(i);
+    private ItemStack findSeeds(boolean extract) {
+        IItemHandler handsInv = entity.getHandsAndInv();
+        ItemStack seeds;
+        for (int i = 0; i < handsInv.getSlots(); i++) {
+            seeds = handsInv.getStackInSlot(i);
             if (isSeed(seeds)) {
+                if (extract) return handsInv.extractItem(i, 1, false);
                 return seeds;
             }
         }
@@ -119,37 +160,39 @@ public class PlantSeedsGoal extends Goal {
         return block instanceof CropBlock;
     }
 
-    private BlockPos findPlantableFarmland(Level level, BlockPos center, int range) {
+    private void findPlantableFarmland(Level level, BlockPos center) {
+        BlockPos closestPos = null;
+        float closestDist = searchRange * searchRange + .01f, dist;
         for (BlockPos pos : BlockPos.betweenClosed(
-                center.offset(-range, -1, -range),
-                center.offset(range, 1, range))) {
-            BlockState soil = level.getBlockState(pos);
-            BlockState above = level.getBlockState(pos.above());
+                center.offset(-searchRange, -1, -searchRange),
+                center.offset(searchRange, 1, searchRange))) {
+            dist = (float) pos.distSqr(center);
+            if (dist >= closestDist || isBlockInvalid(level, level.getBlockState(pos), pos.above())) continue;
 
-            if (soil.getBlock() == Blocks.FARMLAND && above.isAir()) {
-                return pos.above();
-            }
+            closestDist = dist;
+            closestPos = pos.above();
         }
-        return null;
+
+        targetPos = closestPos;
     }
 
-    private void plantSeedAt(BlockPos pos) {
+    private void plantSeedAt() {
         Level level = entity.getLevel();
-        if (level.isClientSide) return;
 
-        ItemStack seeds = findSeeds();
+        ItemStack seeds = findSeeds(true);
         if (seeds.isEmpty()) return;
 
+        if (isBlockInvalid(level, level.getBlockState(targetPos.below()), targetPos)) return;
+
         // Place the crop block at target position
-        this.entity.getLookControl().setLookAt(
-                pos.getX(), pos.getY(), pos.getZ(),
+        entity.getLookControl().setLookAt(
+                targetPos.getX(), targetPos.getY(), targetPos.getZ(),
                 30.0F, // yaw change speed (degrees per tick)
                 30.0F  // pitch change speed
         );
         entity.swing(entity.isLeftHanded() ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND);
         Block block = ((BlockItem) seeds.getItem()).getBlock();
-        level.setBlock(pos, block.defaultBlockState(), 3);
-        level.playSound(null, pos, block.defaultBlockState().getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1, 1);
-        seeds.shrink(1);
+        level.setBlock(targetPos, block.defaultBlockState(), 3);
+        level.playSound(null, targetPos, block.defaultBlockState().getSoundType().getPlaceSound(), SoundSource.BLOCKS, 1, 1);
     }
 }

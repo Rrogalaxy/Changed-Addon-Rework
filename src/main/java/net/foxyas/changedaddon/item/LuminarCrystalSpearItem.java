@@ -38,7 +38,7 @@ public class LuminarCrystalSpearItem extends Item implements Vanishable {
     private final Multimap<Attribute, AttributeModifier> defaultModifiers;
 
     public LuminarCrystalSpearItem() {
-        super(new Item.Properties().tab(ChangedAddonTabs.TAB_CHANGED_ADDON).durability(500).fireResistant());
+        super(new Item.Properties().tab(ChangedAddonTabs.CHANGED_ADDON_MAIN_TAB).durability(500).fireResistant());
         ImmutableMultimap.Builder<Attribute, AttributeModifier> builder = ImmutableMultimap.builder();
         builder.put(Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_DAMAGE_UUID, "Tool modifier", 9.0D, AttributeModifier.Operation.ADDITION));
         builder.put(Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Tool modifier", -2.9F, AttributeModifier.Operation.ADDITION));
@@ -86,7 +86,7 @@ public class LuminarCrystalSpearItem extends Item implements Vanishable {
     public void releaseUsing(@NotNull ItemStack itemStack, @NotNull Level world, @NotNull LivingEntity livingEntity, int time) {
         if (livingEntity instanceof Player player) {
             int i = this.getUseDuration(itemStack) - time;
-            if (i >= 10) {
+            if (i >= THROW_THRESHOLD_TIME) {
                 int j = EnchantmentHelper.getRiptide(itemStack);
                 if (j <= 0 || player.isInWaterOrRain()) {
                     if (!world.isClientSide) {

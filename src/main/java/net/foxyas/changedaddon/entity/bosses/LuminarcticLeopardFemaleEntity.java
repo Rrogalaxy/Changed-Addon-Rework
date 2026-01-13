@@ -8,11 +8,11 @@ import net.ltxprogrammer.changed.entity.Gender;
 import net.ltxprogrammer.changed.entity.TransfurMode;
 import net.ltxprogrammer.changed.init.ChangedAttributes;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvent;
 import net.minecraft.util.Mth;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.*;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobType;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -20,7 +20,6 @@ import net.minecraft.world.level.Level;
 import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PlayMessages;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -34,7 +33,6 @@ public class LuminarcticLeopardFemaleEntity extends AbstractLuminarcticLeopard {
     public LuminarcticLeopardFemaleEntity(EntityType<LuminarcticLeopardFemaleEntity> type, Level world) {
         super(type, world);
         xpReward = XP_REWARD_HUGE;
-        this.setAttributes(this.getAttributes());
         setNoAi(false);
         setPersistenceRequired();
     }
@@ -82,11 +80,6 @@ public class LuminarcticLeopardFemaleEntity extends AbstractLuminarcticLeopard {
     }
 
     @Override
-    protected boolean targetSelectorTest(LivingEntity livingEntity) {
-        return this.isAggro();
-    }
-
-    @Override
     public @NotNull Packet<?> getAddEntityPacket() {
         return NetworkHooks.getEntitySpawningPacket(this);
     }
@@ -130,16 +123,6 @@ public class LuminarcticLeopardFemaleEntity extends AbstractLuminarcticLeopard {
             return super.getPassengersRidingOffset() + this.getTorsoYOffset(this) + (this.isCrouching() ? 1.2 : 1.15);
         }
         return getTorsoYOffsetForFallFly(this);
-    }
-
-    @Override
-    public @NotNull SoundEvent getHurtSound(@NotNull DamageSource ds) {
-        return ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("entity.generic.hurt"));
-    }
-
-    @Override
-    public @NotNull SoundEvent getDeathSound() {
-        return ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("entity.generic.death"));
     }
 
     @Override

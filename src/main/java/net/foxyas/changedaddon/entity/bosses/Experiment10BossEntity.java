@@ -1,26 +1,30 @@
 package net.foxyas.changedaddon.entity.bosses;
 
+import net.foxyas.changedaddon.entity.api.CustomPatReaction;
+import net.foxyas.changedaddon.entity.api.ICrawlAbleEntity;
+import net.foxyas.changedaddon.entity.api.IHasBossMusic;
 import net.foxyas.changedaddon.entity.customHandle.BossAbilitiesHandle;
-import net.foxyas.changedaddon.entity.customHandle.BossMusicTheme;
 import net.foxyas.changedaddon.entity.goals.exp10.ClawsComboAttackGoal;
 import net.foxyas.changedaddon.entity.goals.exp10.ThrowWitherProjectileGoal;
 import net.foxyas.changedaddon.entity.goals.exp10.WitherWave;
-import net.foxyas.changedaddon.entity.goals.exp9.LightningComboAttackGoal;
 import net.foxyas.changedaddon.entity.goals.generic.BreakBlocksAroundGoal;
 import net.foxyas.changedaddon.entity.goals.generic.BurstAttack;
 import net.foxyas.changedaddon.entity.goals.generic.attacks.DashPunchGoal;
 import net.foxyas.changedaddon.entity.goals.generic.attacks.LeapSmashGoal;
 import net.foxyas.changedaddon.entity.goals.generic.attacks.SimpleAntiFlyingAttack;
-import net.foxyas.changedaddon.entity.interfaces.BossWithMusic;
-import net.foxyas.changedaddon.entity.interfaces.CustomPatReaction;
+import net.foxyas.changedaddon.init.ChangedAddonCriteriaTriggers;
 import net.foxyas.changedaddon.init.ChangedAddonEntities;
+import net.foxyas.changedaddon.init.ChangedAddonGameRules;
+import net.foxyas.changedaddon.init.ChangedAddonSoundEvents;
 import net.foxyas.changedaddon.util.ColorUtil;
+import net.foxyas.changedaddon.variant.ChangedAddonTransfurVariants;
 import net.ltxprogrammer.changed.entity.*;
+import net.ltxprogrammer.changed.entity.variant.TransfurVariantInstance;
 import net.ltxprogrammer.changed.init.ChangedAttributes;
 import net.ltxprogrammer.changed.init.ChangedParticles;
 import net.ltxprogrammer.changed.init.ChangedSounds;
+import net.ltxprogrammer.changed.process.ProcessTransfur;
 import net.ltxprogrammer.changed.util.Color3;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.TranslatableComponent;
@@ -30,13 +34,13 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
-import net.minecraft.util.valueproviders.IntProvider;
+import net.minecraft.util.Mth;
 import net.minecraft.util.valueproviders.UniformFloat;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.DifficultyInstance;
@@ -56,7 +60,6 @@ import net.minecraft.world.entity.vehicle.Minecart;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.network.NetworkHooks;
 import net.minecraftforge.network.PlayMessages;
@@ -68,9 +71,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import static net.foxyas.changedaddon.event.TransfurEvents.getPlayerVars;
 import static net.ltxprogrammer.changed.entity.HairStyle.BALD;
 
-public class Experiment10BossEntity extends ChangedEntity implements GenderedEntity, BossWithMusic, CustomPatReaction, PowderSnowWalkable {
+public class Experiment10BossEntity extends ChangedEntity implements GenderedEntity, CustomPatReaction, PowderSnowWalkable, IHasBossMusic, ICrawlAbleEntity {
+
     private static final EntityDataAccessor<Boolean> PHASE2 =
             SynchedEntityData.defineId(Experiment10BossEntity.class, EntityDataSerializers.BOOLEAN);
     private final ServerBossEvent bossInfo = new ServerBossEvent(this.getDisplayName(), ServerBossEvent.BossBarColor.RED, ServerBossEvent.BossBarOverlay.NOTCHED_6);
@@ -110,6 +115,37 @@ public class Experiment10BossEntity extends ChangedEntity implements GenderedEnt
         this.entityData.define(PHASE2, false);
     }
 
+    @Override
+    public void variantTick(Level level) {
+        super.variantTick(level);
+        if (this.getUnderlyingPlayer() != null) {
+            Player playerInControl = this.getUnderlyingPlayer();
+            TransfurVariantInstance<?> transfurVariantInstance = ProcessTransfur.getPlayerTransfurVariant(playerInControl);
+            if (transfurVariantInstance != null) {
+                if (playerInControl.getLevel().getLevelData().getGameRules().getBoolean(ChangedAddonGameRules.NEED_PERMISSION_FOR_BOSS_TRANSFUR)) {
+                    if (!getPlayerVars(playerInControl).Exp10TransfurAllowed) {
+                        ProcessTransfur.setPlayerTransfurVariant(playerInControl, ChangedAddonTransfurVariants.EXPERIMENT_10.get(), TransfurContext.hazard(TransfurCause.GRAB_ABSORB), 1, false);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public @Nullable ResourceLocation getBossMusic() {
+        return ChangedAddonSoundEvents.EXP10_THEME.get().getLocation();
+    }
+
+    @Override
+    public LivingEntity getSelf() {
+        return this;
+    }
+
+    @Override
+    public float getMusicVolume() {
+        return 0.5f;
+    }
+
     protected void setAttributes(AttributeMap attributes) {
         Objects.requireNonNull(attributes.getInstance(ChangedAttributes.TRANSFUR_DAMAGE.get())).setBaseValue((3));
         attributes.getInstance(Attributes.MAX_HEALTH).setBaseValue((325));
@@ -121,16 +157,6 @@ public class Experiment10BossEntity extends ChangedEntity implements GenderedEnt
         attributes.getInstance(Attributes.ARMOR_TOUGHNESS).setBaseValue(6);
         attributes.getInstance(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(0.25);
         attributes.getInstance(Attributes.ATTACK_KNOCKBACK).setBaseValue(0.8);
-    }
-
-    @Override
-    public boolean ShouldPlayMusic() {
-        return this.isAlive();
-    }
-
-    @Override
-    public @NotNull BossMusicTheme BossMusicTheme() {
-        return BossMusicTheme.EXP10;
     }
 
     @Override
@@ -159,7 +185,7 @@ public class Experiment10BossEntity extends ChangedEntity implements GenderedEnt
     }
 
     protected boolean targetSelectorTest(LivingEntity livingEntity) {
-        return livingEntity instanceof Player || livingEntity instanceof ServerPlayer || livingEntity.getType().is(TagKey.create(Registry.ENTITY_TYPE_REGISTRY, new ResourceLocation("changed:humanoids")));
+        return livingEntity instanceof Player || livingEntity instanceof ServerPlayer || livingEntity.getType().is(TagKey.create(Registry.ENTITY_TYPE_REGISTRY, ResourceLocation.parse("changed:humanoids")));
     }
 
     @Override
@@ -224,7 +250,7 @@ public class Experiment10BossEntity extends ChangedEntity implements GenderedEnt
         this.goalSelector.addGoal(10, new LeapSmashGoal(this));
         this.goalSelector.addGoal(15, new DashPunchGoal(this));
         this.goalSelector.addGoal(10, new BreakBlocksAroundGoal(this));
-        this.goalSelector.addGoal(10 , new ThrowWitherProjectileGoal(this, UniformInt.of(60, 120), UniformInt.of(1,8), 36));
+        this.goalSelector.addGoal(10, new ThrowWitherProjectileGoal(this, UniformInt.of(60, 120), UniformInt.of(1, 8), 36));
     }
 
     @Override
@@ -358,12 +384,20 @@ public class Experiment10BossEntity extends ChangedEntity implements GenderedEnt
     @Override
     public void baseTick() {
         super.baseTick();
-        updateSwimmingMovement();
+
+        if (firstTick) {
+            this.getBasicPlayerInfo().setSize(1f);
+            this.getBasicPlayerInfo().setEyeStyle(EyeStyle.TALL);
+            this.getBasicPlayerInfo().setRightIrisColor(Color3.getColor("#880015"));
+            this.getBasicPlayerInfo().setLeftIrisColor(Color3.getColor("#880015"));
+            this.getBasicPlayerInfo().setScleraColor(Color3.getColor("#edd725"));
+        }
+
         SetDefense(this);
         SetAttack(this);
         SetSpeed(this);
         TpEntity(this);
-        CrawlSystem(this.getTarget());
+        this.crawlingSystem(0.025f);
         thisBurstAttack();
     }
 
@@ -371,71 +405,6 @@ public class Experiment10BossEntity extends ChangedEntity implements GenderedEnt
         if (TpCooldown <= 0) {
             BossAbilitiesHandle.BurstAttack(this);
             this.TpCooldown = 50;
-        }
-    }
-
-
-    public void CrawlSystem(LivingEntity target) {
-        if (target != null) {
-            setCrawlingPoseIfNeeded(target);
-            crawlToTarget(target);
-        } else {
-            if (!this.isSwimming() && !this.level.getBlockState(new BlockPos(this.getX(), this.getEyeY(), this.getZ())).isAir()) {
-                this.setPose(Pose.SWIMMING);
-            }
-        }
-    }
-
-    public void setCrawlingPoseIfNeeded(LivingEntity target) {
-        double targetEyeY = target.getEyeY();
-        double entityEyeY = this.getEyeY();
-
-        if (target.getPose() == Pose.SWIMMING && !(this.getPose() == Pose.SWIMMING)) {
-            if (target.getY() < entityEyeY && !(target.level.getBlockState(new BlockPos(target.getX(), target.getEyeY(), target.getZ()).above()).isAir())) {
-                this.setPose(Pose.SWIMMING);
-            }
-        } else {
-            if (!this.isSwimming() && this.level.getBlockState(new BlockPos(this.getX(), this.getEyeY(), this.getZ()).above()).isAir()) {
-                this.setPose(Pose.STANDING);
-            }
-        }
-    }
-
-    public void crawlToTarget(LivingEntity target) {
-        if (target.getPose() == Pose.SWIMMING && this.getPose() == Pose.SWIMMING) {
-            Vec3 delta = target.position().subtract(this.position());
-            double distance = delta.length();
-
-            if (distance > 1.0) {
-                Vec3 motion = delta.normalize().scale(0.00015);
-                this.setDeltaMovement(this.getDeltaMovement().add(motion));
-            }
-        }
-    }
-
-
-    public void updateSwimmingMovement() {
-        if (!this.isInWater()) {
-            if (this.getPose() == Pose.SWIMMING && level.getBlockState(new BlockPos(this.getX(), this.getEyeY(), this.getZ()).above()).isAir()) {
-                this.setPose(Pose.STANDING);
-                this.setSwimming(false);
-            }
-            return;
-        }
-
-        LivingEntity target = this.getTarget();
-        if (target != null) {
-            Vec3 delta = target.position().subtract(this.position());
-            double distance = delta.length();
-            if (distance > 0) {
-                Vec3 motion = delta.normalize().scale(0.07);
-                this.setDeltaMovement(this.getDeltaMovement().add(motion));
-            }
-        }
-
-        if (this.isEyeInFluid(FluidTags.WATER)) {
-            this.setPose(Pose.SWIMMING);
-            this.setSwimming(true);
         }
     }
 
@@ -506,7 +475,7 @@ public class Experiment10BossEntity extends ChangedEntity implements GenderedEnt
                 } else {
                     if (Targets != null && !(Targets instanceof ServerPlayer)) {
                         entity.setTarget(Targets);
-                    } else if (Targets != null && Targets instanceof ServerPlayer serverPlayer) {
+                    } else if (Targets instanceof ServerPlayer serverPlayer) {
                         if (serverPlayer.gameMode.getGameModeForPlayer() != GameType.CREATIVE && serverPlayer.gameMode.getGameModeForPlayer() != GameType.SPECTATOR) {
                             entity.setTarget(Targets);
                         }
@@ -527,9 +496,11 @@ public class Experiment10BossEntity extends ChangedEntity implements GenderedEnt
 
     @Override
     public void WhenPattedReaction(Player player, InteractionHand hand) {
-        if (!player.getLevel().isClientSide) {
-            return;
+        if (!(player.getLevel() instanceof ServerLevel)) return;
+        if (player instanceof ServerPlayer serverPlayer) {
+            ChangedAddonCriteriaTriggers.PAT_ENTITY_TRIGGER.Trigger(serverPlayer, this, "pats_on_the_beast");
         }
+
         List<TranslatableComponent> translatableComponentList = new ArrayList<>();
         translatableComponentList.add(new TranslatableComponent("changed_addon.entity_dialogues.exp10.pat.type_0"));
         translatableComponentList.add(new TranslatableComponent("changed_addon.entity_dialogues.exp10.pat.type_1"));
@@ -545,5 +516,19 @@ public class Experiment10BossEntity extends ChangedEntity implements GenderedEnt
                 0.0f
         );
         player.displayClientMessage(translatableComponentList.get(this.getRandom().nextInt(translatableComponentList.size())), false);
+        applyRampage();
+    }
+
+    private void applyRampage() {
+        MobEffectInstance thisEffect = this.getEffect(MobEffects.DAMAGE_BOOST);
+        MobEffectInstance mobEffectInstance;
+        if (thisEffect != null) {
+            int pDuration = thisEffect.getDuration() + 10;
+            int pAmplifier = Mth.clamp(thisEffect.getAmplifier() + 1, 0, 5);
+            mobEffectInstance = new MobEffectInstance(MobEffects.DAMAGE_BOOST, pDuration, pAmplifier, thisEffect.isAmbient(), thisEffect.isVisible(), thisEffect.showIcon());
+        } else {
+            mobEffectInstance = new MobEffectInstance(MobEffects.DAMAGE_BOOST, 20, 0, true, true, true);
+        }
+        this.addEffect(mobEffectInstance);
     }
 }

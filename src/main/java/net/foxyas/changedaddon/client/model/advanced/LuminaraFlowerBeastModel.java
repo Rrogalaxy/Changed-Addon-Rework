@@ -7,6 +7,8 @@ package net.foxyas.changedaddon.client.model.advanced;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.foxyas.changedaddon.ChangedAddonMod;
+import net.foxyas.changedaddon.client.model.animations.ChangedAddonAnimationsPresets;
+import net.foxyas.changedaddon.client.model.animations.DragonBigWingCreativeFlyAnimator;
 import net.foxyas.changedaddon.client.renderer.layers.animation.CarryAbilityAnimation;
 import net.foxyas.changedaddon.entity.advanced.LuminaraFlowerBeastEntity;
 import net.ltxprogrammer.changed.client.renderer.animate.AnimatorPresets;
@@ -14,6 +16,8 @@ import net.ltxprogrammer.changed.client.renderer.animate.HumanoidAnimator;
 import net.ltxprogrammer.changed.client.renderer.animate.tail.DragonTailCreativeFlyAnimator;
 import net.ltxprogrammer.changed.client.renderer.model.AdvancedHumanoidModel;
 import net.ltxprogrammer.changed.client.renderer.model.AdvancedHumanoidModelInterface;
+import net.ltxprogrammer.changed.entity.variant.TransfurVariantInstance;
+import net.ltxprogrammer.changed.process.ProcessTransfur;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
@@ -64,7 +68,9 @@ public class LuminaraFlowerBeastModel extends AdvancedHumanoidModel<LuminaraFlow
     private final ModelPart LeftLowerLeg;
     private final ModelPart LeftFoot;
     private final ModelPart LeftPad;
-    private final HumanoidAnimator<LuminaraFlowerBeastEntity, LuminaraFlowerBeastModel> animator;
+    private final HumanoidAnimator<LuminaraFlowerBeastEntity, LuminaraFlowerBeastModel> animatorNormalForm;
+    private final HumanoidAnimator<LuminaraFlowerBeastEntity, LuminaraFlowerBeastModel> animatorWingedForm;
+    public boolean shouldHaveBigWings = false;
 
     public LuminaraFlowerBeastModel(ModelPart root) {
         super(root);
@@ -106,7 +112,23 @@ public class LuminaraFlowerBeastModel extends AdvancedHumanoidModel<LuminaraFlow
         this.LeftFoot = this.LeftLowerLeg.getChild("LeftFoot");
         this.LeftPad = this.LeftFoot.getChild("LeftPad");
 
-        this.animator = HumanoidAnimator.of(this).hipOffset(-1.5F).addPreset(AnimatorPresets.wingedDragonLike(this.Head,
+        this.animatorNormalForm = HumanoidAnimator.of(this).hipOffset(-1.5F).addPreset(AnimatorPresets.dragonLike(this.Head,
+                this.Torso,
+                this.LeftArm,
+                this.RightArm,
+                this.Tail,
+                List.of(TailPrimary, TailSecondary, TailTertiary),
+                this.LeftLeg,
+                LeftLowerLeg,
+                LeftFoot,
+                LeftPad,
+                this.RightLeg,
+                RightLowerLeg,
+                RightFoot,
+                RightPad)
+        );
+
+        this.animatorWingedForm = HumanoidAnimator.of(this).hipOffset(-1.5F).addPreset(ChangedAddonAnimationsPresets.bigWingedDragonLike(this.Head,
                         this.Torso,
                         this.LeftArm,
                         this.RightArm,
@@ -143,7 +165,12 @@ public class LuminaraFlowerBeastModel extends AdvancedHumanoidModel<LuminaraFlow
                         TipFlowerTailPrimary,
                         TipFlowerTailSecondary,
                         TipFlowerTailTertiary))
-                );
+                ).addAnimator(new DragonBigWingCreativeFlyAnimator<>(leftWingRoot,
+                        leftSecondaries,
+                        leftTertiaries,
+                        rightWingRoot,
+                        rightSecondaries,
+                        rightTertiaries));
     }
 
     @SuppressWarnings("unused")
@@ -405,7 +432,7 @@ public class LuminaraFlowerBeastModel extends AdvancedHumanoidModel<LuminaraFlow
     }
 
     public List<ModelPart> hiddenPartsByDefault() {
-        return List.of(this.BigTail,this.RightWing, this.LeftWing);
+        return List.of(this.BigTail, this.RightWing, this.LeftWing);
     }
 
     public @NotNull ModelPart getArm(HumanoidArm p_102852) {
@@ -426,19 +453,20 @@ public class LuminaraFlowerBeastModel extends AdvancedHumanoidModel<LuminaraFlow
 
     @Override
     public void setupHand(LuminaraFlowerBeastEntity entity) {
-        animator.setupHand();
+        this.getAnimator(entity).setupHand();
     }
 
     @Override
     public void setupAnim(@NotNull LuminaraFlowerBeastEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
-        animator.setupAnim(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
+        this.shouldHaveBigWings = entity.isHyperAwakened();
+        this.getAnimator(entity).setupAnim(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
         super.setupAnim(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
         CarryAbilityAnimation.playAnimation(entity, this);
     }
 
     @Override
     public void prepareMobModel(@NotNull LuminaraFlowerBeastEntity entity, float limbSwing, float limbSwingAmount, float partialTicks) {
-        this.prepareMobModel(animator, entity, limbSwing, limbSwingAmount, partialTicks);
+        this.prepareMobModel(this.getAnimator(entity), entity, limbSwing, limbSwingAmount, partialTicks);
         this.handleVisibility(entity);
     }
 
@@ -446,21 +474,56 @@ public class LuminaraFlowerBeastModel extends AdvancedHumanoidModel<LuminaraFlow
         this.BigTail.visible = entity.isAwakened();
         this.LeftWing.visible = entity.isAwakened();
         this.RightWing.visible = entity.isAwakened();
-		this.Tail.visible = !entity.isAwakened();
+        this.Tail.visible = !entity.isAwakened();
+        this.shouldHaveBigWings = entity.isHyperAwakened();
     }
 
-	@Override
+    @Override
     public void renderToBuffer(@NotNull PoseStack poseStack, @NotNull VertexConsumer vertexConsumer, int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {
         Head.render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);
-        Torso.render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);
+        if (!this.shouldHaveBigWings) {
+            Torso.render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);
+        } else {
+            setWingsVisibility(false);
+            Torso.render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);
+            setWingsVisibility(true);
+
+            renderBigWings(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);
+        }
         RightArm.render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);
         LeftArm.render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);
         RightLeg.render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);
         LeftLeg.render(poseStack, vertexConsumer, packedLight, packedOverlay, red, green, blue, alpha);
     }
 
+    private void renderBigWings(PoseStack poseStack, VertexConsumer buffer, int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {
+        poseStack.pushPose();
+        poseStack.scale(1.5f, 1.5f, 1.5f);
+
+        poseStack.pushPose();
+        LeftWing.render(poseStack, buffer, packedLight, packedOverlay, red, green, blue, alpha);
+        poseStack.popPose();
+
+        poseStack.pushPose();
+        RightWing.render(poseStack, buffer, packedLight, packedOverlay, red, green, blue, alpha);
+        poseStack.popPose();
+
+        poseStack.popPose();
+    }
+
+    private void setWingsVisibility(boolean wingsVisibility) {
+        LeftWing.visible = wingsVisibility;
+        RightWing.visible = wingsVisibility;
+    }
+
     @Override
     public HumanoidAnimator<LuminaraFlowerBeastEntity, LuminaraFlowerBeastModel> getAnimator(LuminaraFlowerBeastEntity entity) {
-        return animator;
+        if (entity.getUnderlyingPlayer() != null) {
+            TransfurVariantInstance<?> transfurVariant = ProcessTransfur.getPlayerTransfurVariant(entity.getUnderlyingPlayer());
+            if (transfurVariant.getChangedEntity() instanceof LuminaraFlowerBeastEntity luminaraFlowerBeastEntity) {
+                return luminaraFlowerBeastEntity.isAwakened() ? animatorWingedForm : animatorNormalForm;
+            }
+        }
+        return entity.isAwakened() ? animatorWingedForm : animatorNormalForm;
     }
 }

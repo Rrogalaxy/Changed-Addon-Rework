@@ -5,7 +5,7 @@ import net.foxyas.changedaddon.block.advanced.TimedKeypadBlockEntity;
 import net.foxyas.changedaddon.block.entity.*;
 import net.foxyas.changedaddon.client.renderer.blockEntitys.ContainmentContainerRenderer;
 import net.foxyas.changedaddon.client.renderer.blockEntitys.InformantBlockEntityRenderer;
-import net.foxyas.changedaddon.client.renderer.blockEntitys.SnepPlushBlockEntityRenderer;
+import net.foxyas.changedaddon.client.renderer.blockEntitys.SnepPlushyBlockEntityRenderer;
 import net.foxyas.changedaddon.client.renderer.blockEntitys.TimedKeypadBlockEntityRenderer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -19,6 +19,7 @@ import net.minecraftforge.registries.RegistryObject;
 
 @Mod.EventBusSubscriber(modid = ChangedAddonMod.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class ChangedAddonBlockEntities {
+
     public static final DeferredRegister<BlockEntityType<?>> REGISTRY = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITIES, ChangedAddonMod.MODID);
 
     //Non generic Ones
@@ -26,13 +27,15 @@ public class ChangedAddonBlockEntities {
     public static final RegistryObject<BlockEntityType<?>> CATALYZER = register("catalyzer_block_entity", ChangedAddonBlocks.CATALYZER, CatalyzerBlockEntity::new);
     public static final RegistryObject<BlockEntityType<?>> UNIFUSER = register("unifuser_block_entity", ChangedAddonBlocks.UNIFUSER, UnifuserBlockEntity::new);
     public static final RegistryObject<BlockEntityType<?>> DARK_LATEX_PUDDLE = register("dark_latex_puddle_block_entity", ChangedAddonBlocks.DARK_LATEX_PUDDLE, DarkLatexPuddleBlockEntity::new);
-    public static final RegistryObject<BlockEntityType<?>> SIGNAL_BLOCK = register("signal_block_block_entity", ChangedAddonBlocks.SIGNAL_BLOCK, SignalBlockBlockEntity::new);
-    public static final RegistryObject<BlockEntityType<?>> WOLF_PLUSH = register("wolf_plush_block_entity", ChangedAddonBlocks.WOLF_PLUSH, WolfPlushBlockEntity::new);
+    public static final RegistryObject<BlockEntityType<?>> SIGNAL_BLOCK = register("signal_block_block_entity", ChangedAddonBlocks.SIGNAL_BLOCK, SignalBlockEntity::new);
     public static final RegistryObject<BlockEntityType<?>> ADVANCED_UNIFUSER = register("advanced_unifuser_block_entity", ChangedAddonBlocks.ADVANCED_UNIFUSER, AdvancedUnifuserBlockEntity::new);
     public static final RegistryObject<BlockEntityType<?>> ADVANCED_CATALYZER = register("advanced_catalyzer_block_entity", ChangedAddonBlocks.ADVANCED_CATALYZER, AdvancedCatalyzerBlockEntity::new);
     public static final RegistryObject<BlockEntityType<?>> GENERATOR = register("generator_block_entity", ChangedAddonBlocks.GENERATOR, GeneratorBlockEntity::new);
 
-    public static final RegistryObject<BlockEntityType<SnepPlushBlockEntity>> SNEP_PLUSH = REGISTRY.register("snep_plush_block_entity", () -> BlockEntityType.Builder.of(SnepPlushBlockEntity::new, ChangedAddonBlocks.SNEP_PLUSH.get()).build(null));
+    public static final RegistryObject<BlockEntityType<SnepPlushyBlockEntity>> SNEP_PLUSHY = REGISTRY.register("snep_plushy_block_entity", () -> BlockEntityType.Builder.of(SnepPlushyBlockEntity::new, ChangedAddonBlocks.SNEP_PLUSHY.get()).build(null));
+    public static final RegistryObject<BlockEntityType<WolfPlushyBlockEntity>> WOLF_PLUSHY = REGISTRY.register("wolf_plushy_block_entity", () -> BlockEntityType.Builder.of(WolfPlushyBlockEntity::new, ChangedAddonBlocks.WOLF_PLUSHY.get()).build(null));
+    public static final RegistryObject<BlockEntityType<DarkLatexWolfPlushyBlockEntity>> DARK_LATEX_WOLF_PLUSHY = REGISTRY.register("dark_latex_wolf_plushy_block_entity", () -> BlockEntityType.Builder.of(DarkLatexWolfPlushyBlockEntity::new, ChangedAddonBlocks.DARK_LATEX_WOLF_PLUSHY.get()).build(null));
+
     public static final RegistryObject<BlockEntityType<InformantBlockEntity>> INFORMANT_BLOCK = REGISTRY.register("informant_block_block_entity", () -> BlockEntityType.Builder.of(InformantBlockEntity::new, ChangedAddonBlocks.INFORMANT_BLOCK.get()).build(null));
     public static final RegistryObject<BlockEntityType<ContainmentContainerBlockEntity>> CONTAINMENT_CONTAINER = REGISTRY.register("containment_container_block_entity", () -> BlockEntityType.Builder.of(ContainmentContainerBlockEntity::new, ChangedAddonBlocks.CONTAINMENT_CONTAINER.get()).build(null));
 
@@ -47,11 +50,9 @@ public class ChangedAddonBlockEntities {
     @SubscribeEvent
     public static void registerBlockEntitiesRender(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(CONTAINMENT_CONTAINER.get(), ContainmentContainerRenderer::new);
-        event.registerBlockEntityRenderer(SNEP_PLUSH.get(), SnepPlushBlockEntityRenderer::new);
+        event.registerBlockEntityRenderer(SNEP_PLUSHY.get(), SnepPlushyBlockEntityRenderer::new);
         event.registerBlockEntityRenderer(CONTAINMENT_CONTAINER.get(), ContainmentContainerRenderer::new);
         event.registerBlockEntityRenderer(TIMED_KEYPAD_BLOCK_ENTITY.get(), TimedKeypadBlockEntityRenderer::new);
         event.registerBlockEntityRenderer(INFORMANT_BLOCK.get(), InformantBlockEntityRenderer::new);
     }
-
-
 }

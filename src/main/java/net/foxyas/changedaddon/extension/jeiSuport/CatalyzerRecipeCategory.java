@@ -10,15 +10,13 @@ import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.foxyas.changedaddon.ChangedAddonMod;
 import net.foxyas.changedaddon.init.ChangedAddonBlocks;
 import net.foxyas.changedaddon.init.ChangedAddonItems;
-import net.foxyas.changedaddon.recipes.CatalyzerRecipe;
+import net.foxyas.changedaddon.recipe.CatalyzerRecipe;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
 import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-@Deprecated
 public class CatalyzerRecipeCategory implements IRecipeCategory<CatalyzerRecipe> {
     public final static ResourceLocation UID = ChangedAddonMod.resourceLoc("jei_catalyzer");
     public final static ResourceLocation TEXTURE = ChangedAddonMod.textureLoc("textures/screens/jei_catalyzer_screen");
@@ -32,12 +30,12 @@ public class CatalyzerRecipeCategory implements IRecipeCategory<CatalyzerRecipe>
 
     @Override
     public mezz.jei.api.recipe.@NotNull RecipeType<CatalyzerRecipe> getRecipeType() {
-        return ChangedAddonJeiPlugin.JeiCatalyzer_Type;
+        return ChangedAddonJeiPlugin.CATALYZER_RECIPE_TYPE;
     }
 
     @Override
     public @NotNull Component getTitle() {
-        return new TextComponent((new TranslatableComponent("block.changed_addon.catalyzer").getString()));
+        return new TranslatableComponent("block.changed_addon.catalyzer");
     }
 
     @Override
@@ -50,18 +48,25 @@ public class CatalyzerRecipeCategory implements IRecipeCategory<CatalyzerRecipe>
         return this.icon;
     }
 
+
+    /**
+     * getUid and getRecipeClass are marked to removal
+     * you are supposed to get the info from getRecipeType() method now
+     */
+
     @SuppressWarnings("removal")
     @Deprecated
-    @Override
     public @NotNull Class<? extends CatalyzerRecipe> getRecipeClass() {
         return CatalyzerRecipe.class;
     }
 
     @SuppressWarnings("removal")
-    @Override
     public @NotNull ResourceLocation getUid() {
         return UID;
     }
+
+    /// --- End of the for removal classes ---
+
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, CatalyzerRecipe recipe, @NotNull IFocusGroup focuses) {

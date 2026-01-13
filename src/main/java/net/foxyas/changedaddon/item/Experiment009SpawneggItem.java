@@ -1,38 +1,30 @@
 package net.foxyas.changedaddon.item;
 
+import net.foxyas.changedaddon.init.ChangedAddonEntities;
 import net.foxyas.changedaddon.init.ChangedAddonTabs;
-import net.foxyas.changedaddon.procedures.Experiment009SpawneggRightclickedOnBlockProcedure;
-import net.minecraft.world.InteractionResult;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
-import net.minecraft.world.item.UseAnim;
-import net.minecraft.world.item.context.UseOnContext;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 import org.jetbrains.annotations.NotNull;
 
-public class Experiment009SpawneggItem extends Item {
+public class Experiment009SpawneggItem extends SpecialSpawnEggItem {
+
     public Experiment009SpawneggItem() {
-        super(new Item.Properties().tab(ChangedAddonTabs.TAB_CHANGED_ADDON).stacksTo(4).fireResistant().rarity(Rarity.RARE));
+        super(ChangedAddonEntities.EXPERIMENT_009_BOSS, new Item.Properties().tab(ChangedAddonTabs.CHANGED_ADDON_MAIN_TAB).stacksTo(4).fireResistant().rarity(Rarity.RARE));
     }
 
     @Override
-    public @NotNull UseAnim getUseAnimation(@NotNull ItemStack itemstack) {
-        return UseAnim.BLOCK;
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
     public boolean isFoil(@NotNull ItemStack itemstack) {
         return true;
     }
 
     @Override
-    public @NotNull InteractionResult useOn(@NotNull UseOnContext context) {
-        super.useOn(context);
-        Experiment009SpawneggRightclickedOnBlockProcedure.execute(context.getLevel(), context.getClickedPos().getX(), context.getClickedPos().getY(), context.getClickedPos().getZ(), context.getClickedFace(), context.getPlayer(),
-                context.getItemInHand());
-        return InteractionResult.SUCCESS;
+    protected void postSpawn(ServerLevel level, Player player, Entity spawnedEntity) {
+        level.playSound(null, player, SoundEvents.GLASS_BREAK, SoundSource.NEUTRAL, 1, 1);
     }
 }

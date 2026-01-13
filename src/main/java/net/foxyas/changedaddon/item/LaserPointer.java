@@ -1,7 +1,7 @@
 package net.foxyas.changedaddon.item;
 
-import net.foxyas.changedaddon.effect.particles.ChangedAddonParticles;
 import net.foxyas.changedaddon.entity.goals.simple.FollowAndLookAtLaser;
+import net.foxyas.changedaddon.init.ChangedAddonParticleTypes;
 import net.foxyas.changedaddon.init.ChangedAddonTabs;
 import net.foxyas.changedaddon.util.DynamicClipContext;
 import net.foxyas.changedaddon.util.ParticlesUtil;
@@ -47,7 +47,7 @@ public class LaserPointer extends Item implements SpecializedAnimations {
     };
 
     public LaserPointer() {
-        super(new Properties().stacksTo(1).tab(ChangedAddonTabs.TAB_CHANGED_ADDON));
+        super(new Properties().stacksTo(1).tab(ChangedAddonTabs.CHANGED_ADDON_MAIN_TAB));
     }
 
     public static int getColor(ItemStack stack) {
@@ -135,7 +135,7 @@ public class LaserPointer extends Item implements SpecializedAnimations {
 
         EntityHitResult entityHitResult = PlayerUtil.getEntityHitLookingAt(player, result.getType() != HitResult.Type.MISS
                 ? (float) result.distanceTo(player)
-                : LaserPointer.MAX_LASER_REACH, false);
+                : LaserPointer.MAX_LASER_REACH, null);
         Vec3 hitPos;
 
         if (entityHitResult != null) {
@@ -170,7 +170,7 @@ public class LaserPointer extends Item implements SpecializedAnimations {
 
         EntityHitResult entityHitResult = PlayerUtil.getEntityHitLookingAt(player, result.getType() != HitResult.Type.MISS
                 ? (float) result.distanceTo(player)
-                : LaserPointer.MAX_LASER_REACH, false);
+                : LaserPointer.MAX_LASER_REACH, null);
 
         Vec3 hitPos = result.getLocation();
 
@@ -208,7 +208,7 @@ public class LaserPointer extends Item implements SpecializedAnimations {
     private void spawnLaserParticle(Level level, Player player, ItemStack stack, Vec3 pos) {
         ParticlesUtil.sendParticles(
                 level,
-                ChangedAddonParticles.laserPoint(player, LaserPointer.getAWTColor(stack)),
+                ChangedAddonParticleTypes.laserPoint(player, LaserPointer.getAWTColor(stack)),
                 pos.x, pos.y, pos.z,
                 0.0, 0.0, 0.0,
                 1, 0

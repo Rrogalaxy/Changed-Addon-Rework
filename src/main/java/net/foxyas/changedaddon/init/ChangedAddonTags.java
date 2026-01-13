@@ -56,7 +56,15 @@ public final class ChangedAddonTags {
         public static final TagKey<EntityType<?>> CAN_CARRY = key("can_carry");
         public static final TagKey<EntityType<?>> PATABLE = key("patable");
         public static final TagKey<EntityType<?>> DRAGON_ENTITIES = key("dragon_entities");
+        public static final TagKey<EntityType<?>> BEE_ENTITIES = key("bee_entities");
         public static final TagKey<EntityType<?>> CAN_USE_ACCESSORIES = key("can_use_accessories");
+        public static final TagKey<EntityType<?>> PACIFY_IMMUNE = key("pacify_immune");
+        public static final TagKey<EntityType<?>> PACIFY_HANDLE_IMMUNE = key("pacify_handle_immune");
+        public static final TagKey<EntityType<?>> HAS_CLAWS = key("has_claws");
+        public static final TagKey<EntityType<?>> CAN_GRAB = key("can_grab");
+        public static final TagKey<EntityType<?>> IGNORE_GRABBED_TARGETS = key("ignore_grabber_targets");
+        public static final TagKey<EntityType<?>> CANT_SPAWN_AS_ALPHA_ENTITY = key("cant_spawn_as_alpha_entity");
+        public static final TagKey<EntityType<?>> CANT_USE_GRAB = key("cant_use_grab");
 
         private static TagKey<EntityType<?>> key(String path) {
             return TagKey.create(Registry.ENTITY_TYPE_REGISTRY, ChangedAddonMod.resourceLoc(path));

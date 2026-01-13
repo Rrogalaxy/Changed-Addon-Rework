@@ -1,7 +1,7 @@
 package net.foxyas.changedaddon.item;
 
 import net.foxyas.changedaddon.init.ChangedAddonTabs;
-import net.foxyas.changedaddon.procedures.AddTransfurProgressProcedure;
+import net.foxyas.changedaddon.procedure.AddTransfurProgressProcedure;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class WhiteWolfCrystalFragmentItem extends Item {
     public WhiteWolfCrystalFragmentItem() {
-        super(new Item.Properties().tab(ChangedAddonTabs.TAB_CHANGED_ADDON).stacksTo(64).rarity(Rarity.COMMON));
+        super(new Item.Properties().tab(ChangedAddonTabs.CHANGED_ADDON_MAIN_TAB).stacksTo(64).rarity(Rarity.COMMON));
     }
 
     @Override

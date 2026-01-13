@@ -2,6 +2,7 @@ package net.foxyas.changedaddon.client.model.advanced;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.foxyas.changedaddon.ChangedAddonMod;
 import net.foxyas.changedaddon.client.model.animations.AvaliFallFlyAnimator;
 import net.foxyas.changedaddon.client.model.animations.AvaliUpperBodyInitAnimator;
 import net.foxyas.changedaddon.entity.advanced.AvaliEntity;
@@ -17,7 +18,6 @@ import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.*;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.HumanoidArm;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,16 +27,16 @@ import java.util.function.Consumer;
 import static net.ltxprogrammer.changed.client.renderer.animate.AnimatorPresets.dragonBipedal;
 import static net.ltxprogrammer.changed.client.renderer.animate.AnimatorPresets.dragonTail;
 
-public class AvaliModel extends AdvancedHumanoidModel<AvaliEntity> implements AdvancedHumanoidModelInterface<AvaliEntity, AvaliModel> {
+public class AvaliModel<T extends AvaliEntity> extends AdvancedHumanoidModel<T> implements AdvancedHumanoidModelInterface<T, AvaliModel<T>> {
 
-    public static final ModelLayerLocation LAYER_LOCATION = new ModelLayerLocation(new ResourceLocation("changed_addon", "avali_model"), "main");
+    public static final ModelLayerLocation LAYER_LOCATION = ChangedAddonMod.layerLocation("avali_model", "main");
     private final ModelPart Head;
     private final ModelPart Torso;
     private final ModelPart RightArm;
     private final ModelPart LeftArm;
     private final ModelPart RightLeg;
     private final ModelPart LeftLeg;
-    private final HumanoidAnimator<AvaliEntity, AvaliModel> animator;
+    private final HumanoidAnimator<T, AvaliModel<T>> animator;
 
     public AvaliModel(ModelPart root) {
         super(root);
@@ -294,7 +294,7 @@ public class AvaliModel extends AdvancedHumanoidModel<AvaliEntity> implements Ad
     }
 
     @Override
-    public void prepareMobModel(@NotNull AvaliEntity p_162861, float p_102862, float p_102863, float p_102864_) {
+    public void prepareMobModel(@NotNull T p_162861, float p_102862, float p_102863, float p_102864_) {
         this.prepareMobModel(animator, p_162861, p_102862, p_102863, p_102864_);
     }
 
@@ -306,12 +306,12 @@ public class AvaliModel extends AdvancedHumanoidModel<AvaliEntity> implements Ad
      }
   */
     @Override
-    public void setupHand(AvaliEntity entity) {
+    public void setupHand(T entity) {
         animator.setupHand();
     }
 
     @Override
-    public void setupAnim(@NotNull AvaliEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
+    public void setupAnim(@NotNull T entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
         animator.setupAnim(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
         super.setupAnim(entity, limbSwing, limbSwingAmount, ageInTicks, netHeadYaw, headPitch);
     }
@@ -343,7 +343,7 @@ public class AvaliModel extends AdvancedHumanoidModel<AvaliEntity> implements Ad
     }
 
     @Override
-    public HumanoidAnimator<AvaliEntity, AvaliModel> getAnimator(AvaliEntity entity) {
+    public HumanoidAnimator<T, AvaliModel<T>> getAnimator(T entity) {
         return animator;
     }
 
